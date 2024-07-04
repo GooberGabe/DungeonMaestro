@@ -6,6 +6,7 @@ class Sound {
         this.isYouTube = this.isYouTubeLink(source);
         this.element = this.createSoundElement();
         this.isPlaying = false;
+        this.wasPaused = false;
         this.scene = null;
         this.queued = false;
 
@@ -121,28 +122,38 @@ class Sound {
             this.startAudioProgressUpdate();
         }
         this.isPlaying = true;
+        this.wasPaused = false;
         this.element.classList.add('playing');
         if (this.scene) {
             this.scene.updatePlayingState();
         }
+        soundboard.updatePlayingState();
     }
 
     togglePause() {
         if (this.isYouTube) {
             if (this.youtubePlayer.getPlayerState() === YT.PlayerState.PLAYING) {
                 this.youtubePlayer.pauseVideo();
+                this.isPlaying = false;
+                this.wasPaused = true;
             } else {
                 this.youtubePlayer.playVideo();
+                this.isPlaying = true;
+                this.wasPaused = false;
             }
         } else {
             if (this.audio.paused) {
                 this.audio.play();
+                this.isPlaying = true;
+                this.wasPaused = false;
             } else {
                 this.audio.pause();
+                this.isPlaying = false;
+                this.wasPaused = true;
             }
         }
-        this.isPlaying = !this.isPlaying;
         this.element.classList.toggle('playing', this.isPlaying);
+        soundboard.updatePlayingState();
     }
 
     pause() {
@@ -164,12 +175,14 @@ class Sound {
             this.audio.currentTime = 0;
         }
         this.isPlaying = false;
+        this.wasPaused = false;
         this.element.classList.remove('playing');
         if (this.scene) {
             this.scene.updatePlayingState();
         }
         this.stopProgressUpdate();
         this.resetProgress();
+        soundboard.updatePlayingState();
     }
 
     setVolume(volume) {
@@ -297,7 +310,10 @@ class Scene {
         const isAnyPlaying = this.sounds.some(sound => sound.isPlaying);
         this.element.classList.toggle('playing', isAnyPlaying);
         this.element.classList.toggle('playing-closed', isAnyPlaying && !this.isOpen);
+        soundboard.updatePlayingState();
     }
+
+    
 }
 
 class Soundboard {
@@ -315,6 +331,7 @@ class Soundboard {
         this.volumeSlider = document.getElementById('volume-slider');
         this.addSceneDialog = document.getElementById('add-scene-dialog');
         this.addSoundDialog = document.getElementById('add-sound-dialog');
+        this.isGloballyPaused = false;
 
         this.musicQueue = [];
         this.currentlyPlayingMusic = null;
@@ -441,13 +458,27 @@ class Soundboard {
     }
 
     toggleGlobalPause() {
+        this.isGloballyPaused = !this.isGloballyPaused;
         this.scenes.forEach(scene => {
             scene.sounds.forEach(sound => {
-                if (sound.isPlaying) {
+                if (sound.isPlaying || (!this.isGloballyPaused && sound.wasPaused)) {
                     sound.togglePause();
                 }
             });
         });
+        this.updatePauseButtonIcon();
+    }
+
+    updatePauseButtonIcon() {
+        this.pauseButton.textContent = this.isGloballyPaused ? '▶️' : '⏸️';
+    }
+
+    updatePlayingState() {
+        const isAnyPlaying = this.scenes.some(scene => 
+            scene.sounds.some(sound => sound.isPlaying)
+        );
+        this.isGloballyPaused = !isAnyPlaying;
+        this.updatePauseButtonIcon();
     }
 
     toggleMenu() {
@@ -509,5 +540,7 @@ window.onYouTubeIframeAPIReady = function() {
 
     const scene1 = soundboard.addScene('Example');
     scene1.addSound(new Sound('Doorbell', 'assets/sounds/sound1.mp3', 'effect'));
+
+    soundboard.updatePlayingState();
 };
 

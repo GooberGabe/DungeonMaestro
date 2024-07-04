@@ -281,7 +281,7 @@ body {
     border-top: 2px solid var(--accent-secondary);
 }
 
-#pause-button, skip-button {
+#pause-button, #skip-button {
     background: none;
     border: none;
     color: var(--text-primary);
