@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Soundboard Overlay</title>
+    <link rel="stylesheet" href="styles.css">
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Soundboard Overlay</title>
+        <link rel="stylesheet" href="styles.css">
+        <script src="https://www.youtube.com/iframe_api"></script>
+    </head>
+    <body>
+        <div id="app">
+            <div id="titlebar">
+                <div id="drag-region">D&D Soundboard</div>
+                <button id="menu-button">☰</button>
+            </div>
+            <div id="content">
+                <div id="scenes-container"></div>
+            </div>
+            <div id="bottom-bar">
+                <button id="pause-button">⏯️</button>
+                <button id="skip-button">⏭️</button>
+                <input type="range" id="volume-slider" min="0" max="100" value="100">
+            </div>
+            <div id="resize-handle"></div>
+        </div>
+        <div id="menu" class="hidden">
+            <button id="add-scene">Add Scene</button>
+            <button id="quit-app">Quit</button>
+        </div>
+        <div id="resize-handle"></div>
+
+    <!-- Custom dialog for adding a scene -->
+    <dialog id="add-scene-dialog">
+        <form method="dialog">
+            <label for="scene-name">Scene Name:</label>
+            <input type="text" id="scene-name" required>
+            <button type="submit">Add</button>
+            <button type="button" id="cancel-add-scene">Cancel</button>
+        </form>
+    </dialog>
+
+    <!-- Custom dialog for adding a sound -->
+    <dialog id="add-sound-dialog">
+        <form method="dialog">
+            <label for="sound-name">Soundscape Name:</label>
+            <input type="text" id="sound-name" required>
+            <label for="sound-source">Sound Source:</label>
+            <input type="text" id="sound-source" required>
+            <label for="sound-source-type">Source Type:</label>
+            <select id="sound-source-type">
+                <option value="local">Local File</option>
+                <option value="youtube">YouTube URL</option>
+            </select>
+            <label for="sound-type">Soundscape Type:</label>
+            <select id="sound-type" required>
+                <option value="music">Music</option>
+                <option value="ambient">Ambient</option>
+                <option value="effect">Effect</option>
+            </select>
+            <button type="submit">Add</button>
+            <button type="button" id="cancel-add-sound">Cancel</button>
+        </form>
+    </dialog>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

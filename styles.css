@@ -1,0 +1,476 @@
+@import url('https://fonts.googleapis.com/css2?family=Alegreya:wght@400;700&family=Alegreya+Sans:wght@400;700&display=swap');
+
+:root {
+    --bg-primary: #2C3E50;
+    --bg-secondary: #34495E;
+    --text-primary: #ECF0F1;
+    --text-secondary: #BDC3C7;
+    --accent-primary: #E74C3C;
+    --accent-secondary: #F39C12;
+    --music-color: #2ECC71;
+    --ambient-color: #3498DB;
+    --effect-color: #F1C40F;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Alegreya Sans', sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    overflow: hidden;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+#titlebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px; /* Reduced padding */
+    background-color: var(--bg-secondary);
+    -webkit-app-region: drag;
+    border-bottom: 2px solid var(--accent-secondary);
+}
+
+#drag-region {
+    font-family: 'Alegreya', serif;
+    font-size: 16px; /* Slightly reduced font size */
+    font-weight: 700;
+}
+
+#menu {
+    position: absolute;
+    top: 40px;
+    right: 15px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--accent-secondary);
+    border-radius: 6px;
+    padding: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    min-width: 150px;
+}
+
+#menu-button {
+    -webkit-app-region: no-drag;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 16px; /* Slightly reduced font size */
+    cursor: pointer;
+    padding: 3px 8px; /* Reduced padding */
+    transition: color 0.3s ease;
+}
+
+#menu button {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    margin-bottom: 5px;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 14px;
+    text-align: left;
+    transition: background-color 0.3s ease;
+}
+
+#menu button:last-child {
+    margin-bottom: 0;
+}
+
+#menu button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.hidden {
+    display: none !important;
+}
+
+#content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-secondary) var(--bg-secondary);
+}
+
+#content::-webkit-scrollbar {
+    width: 8px;
+}
+
+#content::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+#content::-webkit-scrollbar-thumb {
+    background-color: var(--accent-secondary);
+    border-radius: 4px;
+}
+
+.scene {
+    margin-bottom: 15px;
+    background-color: var(--bg-secondary);
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.scene-header {
+    padding: 1px 10px; /* Reduced padding */
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Alegreya', serif;
+    font-size: 16px; /* Slightly reduced font size */
+    font-weight: 700;
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: background-color 0.3s ease;
+}
+
+.scene-header:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.scene-header .toggle-scene {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.3s ease;
+}
+
+.scene-header .toggle-scene:hover {
+    color: var(--accent-secondary);
+}
+
+.scene-content {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    flex-grow: 1;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.scene-content.hidden {
+    display: none;
+}
+
+.progress-bar {
+    height: 3px;
+    background-color: rgba(255, 255, 255, 0.2);
+    margin-top: 4px;
+    display: none;
+}
+
+.progress {
+    height: 100%;
+    background-color: var(--accent-secondary);
+    width: 0;
+    transition: width 0.5s linear;
+}
+
+.sound {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    overflow: hidden;
+    height: 36px;
+    transition: background-color 0.3s ease;
+    position: relative;
+}
+
+.sound:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sound-type-indicator {
+    width: 4px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.sound.music .sound-type-indicator { background-color: var(--music-color); }
+.sound.ambient .sound-type-indicator { background-color: var(--ambient-color); }
+.sound.effect .sound-type-indicator { background-color: var(--effect-color); }
+
+.sound-name {
+    flex-grow: 1;
+    padding: 0 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sound-controls {
+    display: flex;
+    padding: 4px;
+    height: 100%;
+    align-items: center;
+    justify-content: flex-end;
+    margin-left: auto;
+}
+
+.sound-button {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 14px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    margin: 0 2px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.sound-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--accent-secondary);
+}
+
+.sound.playing {
+    animation: pulse 2s infinite;
+}
+
+.scene.playing-closed > .scene-header {
+    animation: pulse 2s infinite;
+}
+
+.add-sound-button {
+    background: none;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    width: 100%;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.add-sound-button:hover {
+    border-color: var(--accent-secondary);
+    color: var(--accent-secondary);
+}
+
+#bottom-bar {
+    display: flex;
+    align-items: center;
+    padding: 5px 10px; /* Reduced padding */
+    background-color: var(--bg-secondary);
+    border-top: 2px solid var(--accent-secondary);
+}
+
+#pause-button, skip-button {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 16px; /* Slightly reduced font size */
+    cursor: pointer;
+    padding: 0 8px; /* Reduced padding */
+    transition: color 0.3s ease;
+}
+
+#pause-button:hover {
+    color: var(--accent-secondary);
+}
+
+#volume-slider {
+    width: 100px;
+    height: 4px;
+    -webkit-appearance: none;
+    background: var(--text-secondary);
+    outline: none;
+    border-radius: 2px;
+    margin: 0 10px;
+}
+
+#volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-secondary);
+    cursor: pointer;
+}
+
+#volume-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-secondary);
+    cursor: pointer;
+    border: none;
+}
+
+dialog {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--accent-secondary);
+    border-radius: 6px;
+    padding: 20px;
+    max-width: 90%; /* Use percentage for responsiveness */
+    width: 400px; /* Default width */
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+dialog form {
+    display: flex;
+    flex-direction: column;
+}
+
+dialog label {
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+dialog input, dialog select {
+    margin-top: 5px;
+    padding: 8px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--text-secondary);
+    border-radius: 4px;
+    color: var(--text-primary);
+    width: 100%; /* Make inputs full width */
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+dialog button {
+    margin-top: 15px;
+    padding: 8px 12px;
+    background-color: var(--accent-secondary);
+    border: none;
+    border-radius: 4px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+dialog button:hover {
+    background-color: var(--accent-primary);
+}
+
+dialog button[type="button"] {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--accent-secondary);
+}
+
+dialog button[type="button"]:hover {
+    background-color: var(--accent-secondary);
+}
+
+#resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 15px;
+    height: 15px;
+    cursor: nwse-resize;
+    background: linear-gradient(135deg, transparent 50%, var(--accent-secondary) 50%);
+    z-index: 1000;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+/* Width-based queries for grid layout */
+@media (min-width: 300px) and (min-height: 200px) {
+    dialog {
+        width: 95%; /* Even wider on small screens */
+        padding: 15px;
+    }
+
+    dialog input, dialog select, dialog button {
+        font-size: 16px; /* Larger font size for better touch interaction */
+    }
+    .scene-content {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+        gap: 10px;
+    }
+
+    .sound {
+        height: min-content;
+        flex-direction: column;
+        align-items: stretch;
+        padding: 5px;
+        padding-top: 15px;
+    }
+
+    .sound-type-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 15px;
+        height: 15px;
+        margin-right: 0;
+        border-radius: 0 0 15px 0;
+    }
+
+    .sound-name {
+        text-align: center;
+        padding: 6px 0;
+        
+    }
+
+    .sound-controls {
+        justify-content: center;
+        margin: 0 auto;
+        padding: 6px 0;
+        
+    }
+    .sound-button {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+        margin: 0 4px;
+    }
+    .progress-bar {
+        display: block;
+    }
+
+}
+
+@media (max-height: 350px) and (max-width: 300px), (max-height: 200px) {
+    .scene-content {
+        gap: 3px;
+    }
+
+    .sound {
+        height: 21px;
+    }
+
+    .sound-button {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+    }
+}
