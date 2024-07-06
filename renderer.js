@@ -9,11 +9,14 @@ class Sound {
         this.wasPaused = false;
         this.scene = null;
         this.queued = false;
+        this.id = `sound-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        this.volume = 1; // Individual sound volume
 
         if (this.isYouTube) {
             this.initYouTubePlayer();
         } else {
             this.audio = new Audio(source);
+            this.audio.addEventListener('ended', () => this.onEnded());
             if (this.type === 'ambient') {
                 this.audio.loop = true;
             }
@@ -82,6 +85,7 @@ class Sound {
     createSoundElement() {
         const soundEl = document.createElement('div');
         soundEl.className = `sound ${this.type} ${this.isYouTube ? 'youtube' : 'local'}`;
+        soundEl.dataset.soundId = this.id;
         soundEl.innerHTML = `
             <div class="sound-type-indicator"></div>
             <div class="sound-content">
@@ -95,12 +99,15 @@ class Sound {
                 <button class="sound-button stop" title="Stop">■</button>
                 ${this.type === 'music' ? '<button class="sound-button queue" title="Queue">+</button>' : ''}
             </div>
+            <button class="sound-options" title="Options">⚙️</button>
         `;
 
-        soundEl.querySelector('.play').addEventListener('click', () => this.play());
+        //soundEl.querySelector('.play').addEventListener('click', () => this.play());
+        soundEl.querySelector('.play').addEventListener('click', () => soundboard.playSound(this));
         soundEl.querySelector('.stop').addEventListener('click', () => this.stop());
+        soundEl.querySelector('.sound-options').addEventListener('click', () => this.showOptionsDialog());
         if (this.type === 'music') {
-            soundEl.querySelector('.queue').addEventListener('click', () => this.toggleQueue());
+            soundEl.querySelector('.queue').addEventListener('click', () => {console.log("EVENT: addToQueue (Sound)"); this.addToQueue()});
         }
 
         this.progressBar = soundEl.querySelector('.progress');
@@ -108,10 +115,90 @@ class Sound {
         return soundEl;
     }
 
-    play() {
-        if (this.type === 'music') {
-            soundboard.stopAllMusic(this);
+    showOptionsDialog() {
+        const dialog = document.createElement('dialog');
+        dialog.className = 'sound-options-dialog';
+        dialog.innerHTML = `
+            <form method="dialog">
+                <h3>Options for "${this.name}"</h3>
+                <label>
+                    Volume:
+                    <input type="range" min="0" max="1" step="0.01" value="${this.volume}" id="volume-slider">
+                </label>
+                <label>
+                    Source:
+                    <input type="text" value="${this.source}" id="source-input">
+                </label>
+                <div class="dialog-buttons">
+                    <button type="submit">Save</button>
+                    <button type="button" id="delete-sound">Delete Sound</button>
+                    <button type="button" id="cancel-button">Cancel</button>
+                </div>
+            </form>
+        `;
+
+        const volumeSlider = dialog.querySelector('#volume-slider');
+        const sourceInput = dialog.querySelector('#source-input');
+
+        dialog.querySelector('form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.setVolume(parseFloat(volumeSlider.value));
+            if (sourceInput.value != this.source) this.updateSource(sourceInput.value);
+            dialog.close();
+        });
+
+        dialog.querySelector('#delete-sound').addEventListener('click', () => {
+            if (confirm('Are you sure you want to delete this sound?')) {
+                this.delete();
+                dialog.close();
+            }
+        });
+
+        dialog.querySelector('#cancel-button').addEventListener('click', () => {
+            dialog.close();
+        });
+
+        document.body.appendChild(dialog);
+        dialog.showModal();
+    }
+
+    setVolume(volume) {
+        console.log("Volume set (SOUND)")
+        this.volume = volume;
+        this.updateEffectiveVolume();
+    }
+
+    updateEffectiveVolume() {
+        console.log("Effective volume set")
+        const effectiveVolume = this.volume * soundboard.volume;
+        if (this.isYouTube && this.youtubePlayer) {
+            this.youtubePlayer.setVolume(effectiveVolume * 100);
+        } else if (this.audio) {
+            this.audio.volume = effectiveVolume;
         }
+    }
+
+    updateSource(newSource) {
+        this.source = newSource;
+        this.isYouTube = this.isYouTubeLink(newSource);
+        if (this.isYouTube) {
+            this.initYouTubePlayer();
+        } else {
+            this.audio = new Audio(newSource);
+            this.audio.volume = this.volume;
+            if (this.type === 'ambient') {
+                this.audio.loop = true;
+            }
+        }
+    }
+
+    delete() {
+        this.stop();
+        this.scene.removeSound(this);
+        soundboard.removeFromMusicQueue(this);
+    }
+
+    play() {
         if (this.isYouTube) {
             if (this.youtubePlayer && this.youtubePlayer.playVideo) {
                 this.youtubePlayer.playVideo();
@@ -122,12 +209,11 @@ class Sound {
             this.startAudioProgressUpdate();
         }
         this.isPlaying = true;
-        this.wasPaused = false;
         this.element.classList.add('playing');
         if (this.scene) {
             this.scene.updatePlayingState();
         }
-        soundboard.updatePlayingState();
+        this.updateEffectiveVolume();
     }
 
     togglePause() {
@@ -175,24 +261,14 @@ class Sound {
             this.audio.currentTime = 0;
         }
         this.isPlaying = false;
-        this.wasPaused = false;
         this.element.classList.remove('playing');
         if (this.scene) {
             this.scene.updatePlayingState();
         }
         this.stopProgressUpdate();
         this.resetProgress();
-        soundboard.updatePlayingState();
-    }
 
-    setVolume(volume) {
-        if (this.isYouTube) {
-            if (this.youtubePlayer && this.youtubePlayer.setVolume) {
-                this.youtubePlayer.setVolume(volume * 100);
-            }
-        } else {
-            this.audio.volume = volume;
-        }
+        this.onEnded();
     }
 
     updateProgress(currentTime, duration) {
@@ -237,22 +313,39 @@ class Sound {
     }
 
     toggleQueue() {
-        if (this.type === 'music') {
-            this.queued = !this.queued;
-            this.element.classList.toggle('queued', this.queued);
-            if (this.queued) {
-                soundboard.addToMusicQueue(this);
-            } else {
-                // Remove from queue if unqueued
-                const index = soundboard.musicQueue.indexOf(this);
-                if (index > -1) {
-                    soundboard.musicQueue.splice(index, 1);
-                }
-            }
+        console.log("Toggled queue status")
+        this.queued = !this.queued;
+        if (this.queued) {
+            soundboard.addToMusicQueue(this);
+        } else {
+            soundboard.removeFromMusicQueue(this);
+        }
+
+        /* Dequeue from Sound element
+
+        // Update the queue button appearance
+        const queueButton = this.element.querySelector('.queue');
+        if (queueButton) {
+            queueButton.textContent = this.queued ? '−' : '+';
+            queueButton.title = this.queued ? 'Remove from Queue' : 'Add to Queue';
+        }
+
+        */
+    }
+
+    addToQueue() {
+        console.log("Set queued to true.")
+        this.queued = true;
+        soundboard.addToMusicQueue(this);
+    }
+
+    removeFromQueue() {
+        if (this.queued) {
+            this.toggleQueue();
         }
     }
 
-    onAudioEnded() {
+    onEnded() {
         // This method is called when the audio finishes playing
         if (this.type !== 'ambient') {  // Ambient sounds loop, so we don't need to update their state
             this.isPlaying = false;
@@ -260,12 +353,46 @@ class Sound {
             if (this.scene) {
                 this.scene.updatePlayingState();
             }
+            if (this.type === 'music')
+            {
+                console.log("NEXT!")
+                soundboard.playNextInQueue();
+            }
         }
+        
+    }
+}
+
+class QueuedSound {
+    constructor(originalSound) {
+        this.originalSound = originalSound;
+        this.element = this.createSoundElement();
+    }
+
+    createSoundElement() {
+        console.log("Created QueuedSound element.")
+        const soundEl = document.createElement('div');
+        soundEl.className = `sound queued ${this.originalSound.type}`;
+        soundEl.dataset.soundId = this.originalSound.id;
+        soundEl.innerHTML = `
+            <div class="sound-type-indicator"></div>
+            <div class="sound-content">
+                <div class="sound-name">${this.originalSound.name}</div>
+            </div>
+            <button class="remove-from-queue">✕</button>
+        `;
+
+        soundEl.querySelector('.remove-from-queue').addEventListener('click', () => {
+            soundboard.visualQueue.removeSound(this.originalSound);
+        });
+
+        return soundEl;
     }
 }
 
 class Scene {
     constructor(name) {
+        this.id = `scene-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         this.name = name;
         this.sounds = [];
         this.element = this.createSceneElement();
@@ -276,6 +403,7 @@ class Scene {
     createSceneElement() {
         const sceneEl = document.createElement('div');
         sceneEl.className = 'scene';
+        sceneEl.dataset.sceneId = this.id;
         sceneEl.innerHTML = `
             <div class="scene-header">
                 <span>${this.name}</span>
@@ -298,6 +426,14 @@ class Scene {
         this.contentElement.insertBefore(sound.element, this.contentElement.querySelector('.add-sound-button'));
     }
 
+    removeSound(sound) {
+        const index = this.sounds.indexOf(sound);
+        if (index !== -1) {
+            this.sounds.splice(index, 1);
+            this.contentElement.removeChild(sound.element);
+        }
+    }
+
     toggleContent() {
         this.isOpen = !this.isOpen;
         this.contentElement.classList.toggle('hidden', !this.isOpen);
@@ -316,6 +452,87 @@ class Scene {
     
 }
 
+class VisualQueue extends Scene {
+    constructor(soundboard) {
+        super('Queue', soundboard);
+        this.element.classList.add('visual-queue');
+        //this.initDragAndDrop();
+    }
+
+    createSceneElement() {
+        const sceneEl = super.createSceneElement();
+        sceneEl.querySelector('.add-sound-button').remove(); // Remove the "Add Sound" button
+        return sceneEl;
+    }
+
+    addSound(sound) {
+        console.log("Added sound to Queue.")
+        const queuedSound = new QueuedSound(sound);
+        super.addSound(queuedSound);
+        this.initSoundDragAndDrop(queuedSound.element);
+    }
+
+    /*
+    initDragAndDrop() {
+        this.contentElement.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const afterElement = this.getDragAfterElement(this.contentElement, e.clientY);
+            const draggable = document.querySelector('.dragging');
+            if (afterElement == null) {
+                this.contentElement.appendChild(draggable);
+            } else {
+                this.contentElement.insertBefore(draggable, afterElement);
+            }
+        });
+
+        this.contentElement.addEventListener('drop', (e) => {
+            e.preventDefault();
+            this.updateQueueOrder();
+        });
+    }
+    */
+
+    initSoundDragAndDrop(soundElement) {
+        soundElement.setAttribute('draggable', true);
+        soundElement.addEventListener('dragstart', () => {
+            soundElement.classList.add('dragging');
+        });
+        soundElement.addEventListener('dragend', () => {
+            soundElement.classList.remove('dragging');
+        });
+    }
+
+    getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.sound:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    updateQueueOrder() {
+        const newOrder = Array.from(this.contentElement.querySelectorAll('.sound')).map(el => el.dataset.soundId);
+        //const newOrder = this.contentElement.querySelectorAll('.sound');
+        soundboard.updateMusicQueue(newOrder);
+        this.updateQueueNumbers();
+    }
+
+    removeSound(sound) {
+        console.log("Removed sound.");
+        const index = this.sounds.findIndex(s => s.originalSound === sound);
+        if (index !== -1) {
+            this.sounds.splice(index, 1);
+            this.contentElement.removeChild(this.sounds[index].element);
+            soundboard.removeFromMusicQueue(sound);
+        }
+    }
+}
+
 class Soundboard {
     constructor() {
         this.scenes = [];
@@ -329,11 +546,18 @@ class Soundboard {
         this.pauseButton = document.getElementById('pause-button');
         this.skipButton = document.getElementById('skip-button');
         this.volumeSlider = document.getElementById('volume-slider');
+        this.volume = 1;
         this.addSceneDialog = document.getElementById('add-scene-dialog');
         this.addSoundDialog = document.getElementById('add-sound-dialog');
         this.isGloballyPaused = false;
-
+        
+        this.visualQueue = new VisualQueue(this);
+        this.scenesContainer.appendChild(this.visualQueue.element);
         this.musicQueue = [];
+        this.queueContainer = this.visualQueue.element.querySelector(".scene-content");  //document.getElementById('queue-container');
+        this.draggedElement = null;
+        this.initSceneDragAndDrop();
+        this.initQueueDragAndDrop();
         this.currentlyPlayingMusic = null;
         
         this.initEventListeners();
@@ -385,7 +609,8 @@ class Soundboard {
             const sourceType = document.getElementById('sound-source-type').value;
             const type = document.getElementById('sound-type').value;
             if (name && source && (type === 'music' || type === 'ambient' || type === 'effect')) {
-                soundboard.addSound(name, source, sourceType, type);
+                var s = new Sound(name, source, type);
+                soundboard.addSound(s);
                 soundboard.addSoundDialog.close();
             }
         });
@@ -443,12 +668,32 @@ class Soundboard {
         this.addSoundDialog.showModal();
     }
 
-    addSound(name, source, sourceType, type) {
-        const sound = new Sound(name, source, type);
+    addSound(sound) {
         this.currentScene.addSound(sound);
     }
 
+    playSound(sound) {
+        if (sound.type === 'music') {
+            this.stopAllMusic();
+            this.currentlyPlayingMusic = sound;
+            this.removeFromMusicQueue(sound);
+        }
+        sound.play();
+        this.updateVisualQueue();
+    }
+
+    playNextInQueue() {
+        if (this.musicQueue.length > 0) {
+            const nextSound = this.musicQueue.shift();
+            this.playSound(nextSound);
+        } else {
+            this.currentlyPlayingMusic = null;
+        }
+        this.updateVisualQueue();
+    }
+
     setVolume(value) {
+        console.log("Volume set (SOUNDBOARD)")
         const volume = value / 100;
         this.scenes.forEach(scene => {
             scene.sounds.forEach(sound => {
@@ -490,41 +735,284 @@ class Soundboard {
         window.close();
     }
 
-    stopAllMusic(exceptSound) {
+    stopAllMusic() {
         this.scenes.forEach(scene => {
             scene.sounds.forEach(sound => {
-                if (sound.type === 'music' && sound !== exceptSound) {
+                if (sound.type === 'music' && sound.isPlaying) {
                     sound.stop();
                 }
             });
         });
+        this.currentlyPlayingMusic = null;
     }
 
     skipToNextTrack() {
         if (this.currentlyPlayingMusic) {
             this.currentlyPlayingMusic.stop();
         }
-        if (this.musicQueue.length > 0) {
-            const nextTrack = this.musicQueue.shift();
-            nextTrack.play();
-            this.currentlyPlayingMusic = nextTrack;
+        else if (this.musicQueue.length > 0) {
+            this.playNextInQueue();
         }
     }
 
-    setGlobalVolume(value) {
-        const volume = value / 100;
+    setGlobalVolume(volume) {
+        this.volume = parseFloat(volume/100);
         this.scenes.forEach(scene => {
             scene.sounds.forEach(sound => {
-                sound.setVolume(volume);
+                sound.setVolume(this.volume);
             });
         });
     }
 
     addToMusicQueue(sound) {
-        if (sound.type === 'music') {
+        console.log("Added Sound to queue (SOUNDBOARD)")
+        if (!this.musicQueue.includes(sound)) {
             this.musicQueue.push(sound);
+            this.updateVisualQueue();
         }
     }
+
+    removeFromMusicQueue(sound) {
+        console.log("Removed Sound from queue (SOUNDBOARD)")
+        const index = this.musicQueue.indexOf(sound);
+        if (index > -1) {
+            this.musicQueue.splice(index, 1);
+            sound.queued = false;
+            const queueButton = sound.element.querySelector('.queue');
+            if (queueButton) {
+                queueButton.textContent = '+';
+                queueButton.title = 'Add to Queue';
+            }
+            this.updateVisualQueue();
+        }
+    }
+
+    updateVisualQueue() {
+        console.log("Updating queue.")
+        this.queueContainer.innerHTML = "";
+        if (this.musicQueue.length === 0) {
+            this.queueContainer.innerHTML += '<p>No songs in queue</p>';
+        } else {
+            this.musicQueue.forEach((sound, index) => {
+                const queuedSoundEl = this.createQueuedSoundElement(sound, index + 1);
+                this.queueContainer.appendChild(queuedSoundEl);
+            });
+        }
+        this.updateQueueNumbers();
+    }
+
+    updateQueueNumbers() {
+        const queuedSounds = this.queueContainer.querySelectorAll('.queued-sound');
+        queuedSounds.forEach((el, index) => {
+            el.dataset.queueNumber = index + 1;
+        });
+    }
+
+    updateMusicQueue(newOrder) {
+        this.musicQueue = newOrder.map(id => this.findSoundById(id));
+    }
+
+    createQueuedSoundElement(sound, index) {
+        const queuedSoundEl = document.createElement('div');
+        queuedSoundEl.className = 'queued-sound';
+        queuedSoundEl.dataset.soundId = sound.id;
+        queuedSoundEl.dataset.queueIndex = index;
+        queuedSoundEl.draggable = true;
+        queuedSoundEl.innerHTML = `
+            <div class="sound-type-indicator ${sound.type}"></div>
+            <div class="sound-name">${sound.name}</div>
+            <button class="remove-from-queue" title="Remove from Queue">✕</button>
+        `;
+
+        queuedSoundEl.querySelector('.remove-from-queue').addEventListener('click', () => {
+            console.log("EVENT: toggleQueue (SOUNDBOARD)")
+            sound.toggleQueue();
+        });
+
+        /* Play now is redundant
+        queuedSoundEl.querySelector('.play-now').addEventListener('click', () => {
+            this.playSound(sound);
+        });
+        */
+
+        //sthis.initSoundDraggable(queuedSoundEl);
+
+        return queuedSoundEl;
+    }
+
+    findSoundById(id) {
+        for (let scene of this.scenes) {
+            const sound = scene.sounds.find(s => s.id === id);
+            if (sound) return sound;
+        }
+    }
+
+    initSceneDragAndDrop() {
+        this.scenes.forEach(scene => this.initSceneDraggable(scene.element));
+        this.scenesContainer.addEventListener('dragover', this.handleSceneDragOver.bind(this));
+        this.scenesContainer.addEventListener('drop', this.handleSceneDrop.bind(this));
+    }
+
+    initSceneDraggable(sceneElement) {
+        sceneElement.setAttribute('draggable', true);
+        sceneElement.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', sceneElement.dataset.sceneId);
+            sceneElement.classList.add('dragging');
+        });
+        sceneElement.addEventListener('dragend', () => {
+            sceneElement.classList.remove('dragging');
+        });
+    }
+
+    initQueueDragAndDrop() {
+        this.queueContainer.addEventListener('dragstart', this.handleDragStart.bind(this));
+        this.queueContainer.addEventListener('dragover', this.handleDragOver.bind(this));
+        this.queueContainer.addEventListener('dragleave', this.handleDragLeave.bind(this));
+        this.queueContainer.addEventListener('drop', this.handleDrop.bind(this));
+        this.queueContainer.addEventListener('dragend', this.handleDragEnd.bind(this));
+    }
+
+    handleDragStart(e) {
+        if (e.target.classList.contains('queued-sound')) {
+            this.draggedElement = e.target;
+            e.dataTransfer.setData('text/plain', e.target.dataset.soundId);
+            e.target.style.opacity = '0.5';
+        }
+    }
+
+    handleDragOver(e) {
+        e.preventDefault();
+        if (this.draggedElement) {
+            const targetElement = e.target.closest('.queued-sound');
+            if (targetElement && targetElement !== this.draggedElement) {
+                const rect = targetElement.getBoundingClientRect();
+                const isGridLayout = window.innerWidth >= 300 && window.innerHeight >= 200; // Check if we're in grid layout
+
+                if (isGridLayout) {
+                    const midX = rect.left + rect.width / 2;
+                    if (e.clientX < midX) {
+                        targetElement.classList.add('drag-over-top');
+                        targetElement.classList.remove('drag-over-bottom');
+                    } else {
+                        targetElement.classList.add('drag-over-bottom');
+                        targetElement.classList.remove('drag-over-top');
+                    }
+                } else {
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        targetElement.classList.add('drag-over-top');
+                        targetElement.classList.remove('drag-over-bottom');
+                    } else {
+                        targetElement.classList.add('drag-over-bottom');
+                        targetElement.classList.remove('drag-over-top');
+                    }
+                }
+            }
+        }
+    }
+
+    handleDragLeave(e) {
+        if (e.target.classList.contains('queued-sound')) {
+            e.target.style.borderTop = '';
+            e.target.style.borderBottom = '';
+        }
+    }
+
+    handleDrop(e) {
+        e.preventDefault();
+        if (this.draggedElement) {
+            const targetElement = e.target.closest('.queued-sound');
+            if (targetElement && targetElement !== this.draggedElement) {
+                const rect = targetElement.getBoundingClientRect();
+                const isGridLayout = window.innerWidth >= 768;
+
+                if (isGridLayout) {
+                    const midX = rect.left + rect.width / 2;
+                    if (e.clientX < midX) {
+                        this.queueContainer.insertBefore(this.draggedElement, targetElement);
+                    } else {
+                        this.queueContainer.insertBefore(this.draggedElement, targetElement.nextSibling);
+                    }
+                } else {
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        this.queueContainer.insertBefore(this.draggedElement, targetElement);
+                    } else {
+                        this.queueContainer.insertBefore(this.draggedElement, targetElement.nextSibling);
+                    }
+                }
+
+                this.updateQueueOrder();
+                this.updateQueueNumbers();
+            }
+        }
+    }
+
+    handleDragEnd(e) {
+        if (this.draggedElement) {
+            this.draggedElement.style.opacity = '1';
+            this.draggedElement = null;
+            
+            // Clear any remaining drag styling
+            this.queueContainer.querySelectorAll('.queued-sound').forEach(el => {
+                el.classList.remove('drag-over-top', 'drag-over-bottom');
+            });
+        }
+    }
+
+    initSoundDraggable(soundElement) {
+        soundElement.setAttribute('draggable', true);
+        soundElement.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', soundElement.dataset.soundId);
+            soundElement.classList.add('dragging');
+        });
+        soundElement.addEventListener('dragend', () => {
+            soundElement.classList.remove('dragging');
+        });
+    }
+
+    handleSceneDragOver(e) {
+        e.preventDefault();
+        const afterElement = this.getDragAfterElement(this.scenesContainer, e.clientY);
+        const draggable = document.querySelector('.scene.dragging');
+        if (draggable && afterElement) {
+            this.scenesContainer.insertBefore(draggable, afterElement);
+        }
+    }
+
+    handleSceneDrop(e) {
+        e.preventDefault();
+        const sceneId = e.dataTransfer.getData('text/plain');
+        const sceneElement = document.querySelector(`.scene[data-scene-id="${sceneId}"]`);
+        if (sceneElement) {
+            this.updateSceneOrder();
+        }
+    }
+
+    getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.scene:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    updateSceneOrder() {
+        this.scenes = Array.from(this.scenesContainer.querySelectorAll('.scene'))
+            .map(el => this.scenes.find(scene => scene.element.dataset.sceneId === el.dataset.sceneId));
+    }
+
+    updateQueueOrder() {
+        const newOrder = Array.from(this.queueContainer.querySelectorAll('.queued-sound'))
+            .map(el => this.musicQueue.find(sound => sound.id === el.dataset.soundId));
+        this.musicQueue = newOrder;
+    }
+
 }
 
 let tag = document.createElement('script');
@@ -539,7 +1027,11 @@ window.onYouTubeIframeAPIReady = function() {
     soundboard = new Soundboard();
 
     const scene1 = soundboard.addScene('Example');
-    scene1.addSound(new Sound('Doorbell', 'assets/sounds/sound1.mp3', 'effect'));
+    var s = new Sound('Music', 'https://www.youtube.com/watch?v=oCjPrsrSTPA&list=RDoCjPrsrSTPA&index=1', 'music')
+    scene1.addSound(s);
+
+    var s2 = new Sound('Doorbell', 'assets/sounds/sound1.mp3', 'music')
+    scene1.addSound(s2);
 
     soundboard.updatePlayingState();
 };

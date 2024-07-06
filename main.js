@@ -25,7 +25,7 @@ function createWindow() {
   win.setMinimumSize(200, 100); // Even smaller minimum size
 
   // Uncomment the following line to open DevTools by default
-  // win.webContents.openDevTools();
+   win.webContents.openDevTools();
 }
 
 app.whenReady().then(() => {
@@ -42,4 +42,5 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+  
 });

@@ -7,8 +7,8 @@
     --text-secondary: #BDC3C7;
     --accent-primary: #E74C3C;
     --accent-secondary: #F39C12;
-    --music-color: #2ECC71;
-    --ambient-color: #3498DB;
+    --ambient-color: #2ECC71;
+    --music-color: #3498DB;
     --effect-color: #F1C40F;
 }
 
@@ -26,6 +26,7 @@ body {
     flex-direction: column;
     height: 100vh;
 }
+
 
 #titlebar {
     display: flex;
@@ -114,12 +115,18 @@ body {
     border-radius: 4px;
 }
 
+.visual-queue {
+    border: 2px solid var(--accent-secondary);
+    background-color: rgba(var(--accent-secondary-rgb), 0.1);
+}
+
 .scene {
     margin-bottom: 15px;
     background-color: var(--bg-secondary);
     border-radius: 6px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     overflow: hidden;
+    cursor: move;
 }
 
 .scene-header {
@@ -182,7 +189,7 @@ body {
     transition: width 0.5s linear;
 }
 
-.sound {
+.sound, .queued-sound {
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 4px;
     display: flex;
@@ -202,6 +209,162 @@ body {
     width: 4px;
     height: 16px;
     flex-shrink: 0;
+}
+
+.sound-options {
+    display: none;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sound-options-dialog {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--accent-secondary);
+    border-radius: 4px;
+    padding: 20px;
+}
+
+.sound-options-dialog form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sound-options-dialog label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.sound-options-dialog input[type="range"],
+.sound-options-dialog input[type="text"] {
+    width: 100%;
+}
+
+.sound:hover .sound-options {
+    opacity: 1;
+}
+
+.dialog-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.dialog-buttons button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.dialog-buttons button[type="submit"] {
+    background-color: var(--accent-secondary);
+    color: var(--text-primary);
+}
+
+.dialog-buttons button#delete-sound {
+    background-color: #e74c3c;
+    color: var(--text-primary);
+}
+
+.queued-sound {
+    /*
+    display: flex;
+    align-items: center;
+    background-color: rgba(80, 80, 80, 0.8);
+    border-radius: 4px;
+    margin-bottom: 5px;
+    padding: 5px;
+    cursor: move;
+    */
+    padding-right: 5px;
+    padding-left: 0px;
+    cursor: move;
+    transition: border-color 0.3s ease;
+}
+
+.queued-sound::before {
+    content: attr(data-queue-number);
+    position: absolute;
+    margin-left: 6px;
+    margin-bottom: 2px;
+    font-size: 19px;
+    color: var(--text-secondary);
+    z-index: 1;
+}
+
+.queued-sound .sound-type-indicator {
+    width: 4px;
+    height: 20px;
+    margin-right: 10px;
+}
+
+.queued-sound .sound-name {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.queued-sound .remove-from-queue {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+}
+
+.queued-sound .remove-from-queue:hover {
+    color: var(--accent-primary);
+}
+
+.queued-sound.dragging {
+    opacity: 0.5;
+}
+
+.queued-sound.drag-over-top {
+    border-top: 2px solid white;
+}
+
+.queued-sound.drag-over-bottom {
+    border-bottom: 2px solid white;
+}
+
+.sound.queued {
+    cursor: move;
+}
+
+.sound.queued .sound-controls {
+    display: none;
+}
+
+.sound.queued .remove-from-queue {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+}
+
+.sound.queued .remove-from-queue:hover {
+    color: var(--accent-primary);
+}
+
+.dragging {
+    opacity: 0.5;
 }
 
 .sound.music .sound-type-indicator { background-color: var(--music-color); }
@@ -295,7 +458,7 @@ body {
     color: var(--accent-secondary);
 }
 
-#volume-slider {
+#volume-slider, .sound-options-dialog input[type="range"] {
     width: 100px;
     height: 4px;
     -webkit-appearance: none;
@@ -303,9 +466,10 @@ body {
     outline: none;
     border-radius: 2px;
     margin: 0 10px;
+    flex: none;
 }
 
-#volume-slider::-webkit-slider-thumb {
+#volume-slider::-webkit-slider-thumb, .sound-options-dialog input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 16px;
@@ -315,13 +479,18 @@ body {
     cursor: pointer;
 }
 
-#volume-slider::-moz-range-thumb {
+#volume-slider::-moz-range-thumb, .sound-options-dialog input[type="range"]::-moz-range-thumb {
     width: 16px;
     height: 16px;
     border-radius: 50%;
     background: var(--accent-secondary);
     cursor: pointer;
     border: none;
+}
+
+.sound-options-dialog input[type="range"]:hover,
+#volume-slider:hover {
+    opacity: 1;
 }
 
 dialog {
@@ -403,6 +572,10 @@ dialog button[type="button"]:hover {
 
 /* Width-based queries for grid layout */
 @media (min-width: 300px) and (min-height: 200px) {
+    .sound-options {
+        display: block;
+    }
+    
     dialog {
         width: 95%; /* Even wider on small screens */
         padding: 15px;
@@ -411,6 +584,7 @@ dialog button[type="button"]:hover {
     dialog input, dialog select, dialog button {
         font-size: 16px; /* Larger font size for better touch interaction */
     }
+
     .scene-content {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
@@ -457,6 +631,20 @@ dialog button[type="button"]:hover {
         display: block;
     }
 
+    .queued-sound {
+        margin-bottom: 0;
+    }
+
+    .queued-sound.drag-over-top {
+        border-top: none;
+        border-left: 2px solid white;
+    }
+
+    .queued-sound.drag-over-bottom {
+        border-bottom: none;
+        border-right: 2px solid white;
+    }
+
 }
 
 @media (max-height: 350px) and (max-width: 300px), (max-height: 200px) {
@@ -464,7 +652,7 @@ dialog button[type="button"]:hover {
         gap: 3px;
     }
 
-    .sound {
+    .sound, .queued-sound {
         height: 21px;
     }
 
