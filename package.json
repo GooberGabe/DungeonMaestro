@@ -1,7 +1,7 @@
 {
-  "name": "electron-soundboard",
+  "name": "dungeonmaestro-soundboard",
   "version": "1.0.0",
-  "description": "A simple soundboard application",
+  "description": "A soundboard application for TTRPG players.",
   "main": "main.js",
   "scripts": {
     "start": "electron ."
@@ -9,6 +9,10 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^latest_version"
+    "electron": "latest"
+  },
+  "dependencies": {
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   }
 }

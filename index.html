@@ -2,17 +2,19 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Soundboard Overlay</title>
+    <title>DungeonMaestro</title>
     <link rel="stylesheet" href="styles.css">
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
-        <title>Soundboard Overlay</title>
+        <title>DungeonMaestro</title>
         <link rel="stylesheet" href="styles.css">
         <script src="https://www.youtube.com/iframe_api"></script>
+        <!-- <script type="module" src="main.js"></script> -->
     </head>
     <body>
+        <!-- <script type="module" src="main.js"></script> -->
         <div id="app">
             <div id="titlebar">
                 <div id="drag-region">DungeonMaestro</div>
@@ -34,7 +36,7 @@
         </div>
         <div id="resize-handle"></div>
 
-    <!-- Custom dialog for adding a scene -->
+    <!-- Dialog for adding a scene -->
     <dialog id="add-scene-dialog">
         <form method="dialog">
             <label for="scene-name">Scene Name:</label>
@@ -44,7 +46,7 @@
         </form>
     </dialog>
 
-    <!-- Custom dialog for adding a sound -->
+    <!-- Dialog for adding a sound -->
     <dialog id="add-sound-dialog">
         <form method="dialog">
             <label for="sound-name">Soundscape Name:</label>
@@ -67,6 +69,7 @@
         </form>
     </dialog>
 
-    <script src="renderer.js"></script>
+    <!-- <script type="module" src="main.js"></script> -->
+    <script type="module" src="renderer.js"></script>
 </body>
 </html>
