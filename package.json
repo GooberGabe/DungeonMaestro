@@ -13,6 +13,11 @@
   "build": {
     "appId": "https://github.com/GooberGabe/DungeonMaestro",
     "productName": "DungeonMaestro",
+    "publish": {
+      "provider": "github",
+      "owner": "GooberGabe",
+      "repo": "DungeonMaestro"
+    },
     "mac": {
       "category": "public.app-category.music"
     },
@@ -36,6 +41,7 @@
     "electron-rebuild": "^3.2.9"
   },
   "dependencies": {
-    "better-sqlite3": "^8.7.0"
+    "better-sqlite3": "^8.7.0",
+    "electron-updater": "^6.2.1"
   }
 }

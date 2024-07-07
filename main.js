@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
+const { autoUpdater } = require('electron-updater');
 const SoundboardDB = require('./database.js');
 
 let mainWindow;
@@ -27,6 +28,10 @@ function createWindow() {
   win.loadFile('index.html');
   win.setResizable(true);
   win.setMinimumSize(200, 100); 
+
+  win.webContents.once('did-finish-load', () => {
+    autoUpdater.checkForUpdatesAndNotify();
+  });
 
   //win.on('closed', function () {
   //  mainWindow = null;
@@ -66,4 +71,17 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit();
+});
+
+// Auto-updater events
+autoUpdater.on('update-available', () => {
+  mainWindow.webContents.send('update_available');
+});
+
+autoUpdater.on('update-downloaded', () => {
+  mainWindow.webContents.send('update_downloaded');
+});
+
+ipcMain.on('restart_app', () => {
+  autoUpdater.quitAndInstall();
 });

@@ -1118,3 +1118,24 @@ window.onYouTubeIframeAPIReady = function() {
     soundboard.updatePlayingState();
 };
 
+
+// ---- UPDATER STUFF ----
+
+// Listen for update available
+window.electronAPI.onUpdateAvailable(() => {
+    console.log('Update available. Downloading...');
+    // TODO: Implement "what's new" popup
+});
+
+// Listen for update downloaded
+window.electronAPI.onUpdateDownloaded(() => {
+    console.log('Update downloaded. It will be installed on restart.');
+    // Prompt user to restart the app
+    const response = confirm('An update has been downloaded. Restart to install?');
+    if (response) {
+        window.electronAPI.restartApp();
+    }
+});
+
+// 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
+

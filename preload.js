@@ -7,5 +7,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getScenes: () => ipcRenderer.invoke('get-scenes'),
     getSounds: () => ipcRenderer.invoke('get-sounds'),
     getQueue: () => ipcRenderer.invoke('get-queue'),
-    deleteAllScenes: () => ipcRenderer.invoke('delete-all-scenes')
+    deleteAllScenes: () => ipcRenderer.invoke('delete-all-scenes'),
+
+    onUpdateAvailable: (callback) => ipcRenderer.on('update_available', callback),
+    onUpdateDownloaded: (callback) => ipcRenderer.on('update_downloaded', callback),
+    restartApp: () => ipcRenderer.send('restart_app')
 });
