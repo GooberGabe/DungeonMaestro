@@ -1,24 +1,17 @@
-const sqlite3 = require('sqlite3');
-const { open } = require('sqlite');
+const Database = require('better-sqlite3');
 const path = require('path');
 const { app } = require('electron');
 
 class SoundboardDB {
     constructor() {
-        this.dbPromise = this.initDatabase();
-    }
-
-    async initDatabase() {
         const userDataPath = app.getPath('userData');
         const dbPath = path.join(userDataPath, 'soundboard.sqlite');
-        console.log(`Initializing database at: ${dbPath}`);
-        
-        const db = await open({
-            filename: dbPath,
-            driver: sqlite3.Database
-        });
+        this.db = new Database(dbPath, { verbose: console.log });
+        this.initDatabase();
+    }
 
-        await db.exec(`
+    initDatabase() {
+        this.db.exec(`
             CREATE TABLE IF NOT EXISTS scenes (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL
@@ -40,61 +33,56 @@ class SoundboardDB {
                 FOREIGN KEY (sound_id) REFERENCES sounds(id)
             );
         `);
-
-        console.log('Database initialized');
-        return db;
     }
 
-    async saveScene(scene) {
-        console.log(`Saving scene: ${JSON.stringify(scene)}`);
-        const db = await this.dbPromise;
-        await db.run('INSERT OR REPLACE INTO scenes (id, name) VALUES (?, ?)', [scene.id, scene.name]);
+    saveScene(scene) {
+        const stmt = this.db.prepare('INSERT OR REPLACE INTO scenes (id, name) VALUES (?, ?)');
+        stmt.run(scene.id, scene.name);
     }
 
-    async saveSound(sound) {
-        console.log(`Saving sound: ${JSON.stringify(sound)}`);
-        const db = await this.dbPromise;
-        await db.run('INSERT OR REPLACE INTO sounds (id, scene_id, name, source, type, volume) VALUES (?, ?, ?, ?, ?, ?)',
-            [sound.id, sound.scene_id, sound.name, sound.source, sound.type, sound.volume]);
+    saveSound(sound) {
+        const stmt = this.db.prepare('INSERT OR REPLACE INTO sounds (id, scene_id, name, source, type, volume) VALUES (?, ?, ?, ?, ?, ?)');
+        stmt.run(sound.id, sound.scene_id, sound.name, sound.source, sound.type, sound.volume);
     }
 
-    async saveQueue(queue) {
-        console.log(`Saving queue: ${JSON.stringify(queue)}`);
-        const db = await this.dbPromise;
-        await db.run('DELETE FROM queue');
-        for (const [index, sound] of queue.entries()) {
-            await db.run('INSERT INTO queue (position, sound_id) VALUES (?, ?)', [index, sound.id]);
-        }
+    saveQueue(queue) {
+        const deleteStmt = this.db.prepare('DELETE FROM queue');
+        const insertStmt = this.db.prepare('INSERT INTO queue (sound_id) VALUES (?)');
+        
+        const saveQueueTx = this.db.transaction((queueItems) => {
+            deleteStmt.run();
+            for (const sound of queueItems) {
+                insertStmt.run(sound.id);
+            }
+        });
+
+        saveQueueTx(queue);
     }
 
-    async getScenes() {
-        const db = await this.dbPromise;
-        const scenes = await db.all('SELECT * FROM scenes');
-        console.log(`Retrieved scenes: ${JSON.stringify(scenes)}`);
-        return scenes;
+    getScenes() {
+        return this.db.prepare('SELECT * FROM scenes').all();
     }
 
-    async getSounds() {
-        const db = await this.dbPromise;
-        const sounds = await db.all('SELECT * FROM sounds');
-        console.log(`Retrieved sounds: ${JSON.stringify(sounds)}`);
-        return sounds;
+    getSounds() {
+        return this.db.prepare('SELECT * FROM sounds').all();
     }
 
-    async getQueue() {
-        const db = await this.dbPromise;
-        const queue = await db.all('SELECT sound_id FROM queue ORDER BY position');
-        console.log(`Retrieved queue: ${JSON.stringify(queue)}`);
-        return queue;
+    getQueue() {
+        return this.db.prepare('SELECT sound_id FROM queue ORDER BY position').all();
     }
 
-    async deleteAllScenes() {
-        console.log('Deleting all scenes from the database');
-        const db = await this.dbPromise;
-        await db.run('DELETE FROM scenes');
-        await db.run('DELETE FROM sounds');
-        await db.run('DELETE FROM queue');
-        console.log('All scenes, sounds, and queue items deleted from the database');
+    deleteAllScenes() {
+        const deleteScenes = this.db.prepare('DELETE FROM scenes');
+        const deleteSounds = this.db.prepare('DELETE FROM sounds');
+        const deleteQueue = this.db.prepare('DELETE FROM queue');
+
+        const deleteAllTx = this.db.transaction(() => {
+            deleteScenes.run();
+            deleteSounds.run();
+            deleteQueue.run();
+        });
+
+        deleteAllTx();
     }
 }
 

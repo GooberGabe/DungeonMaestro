@@ -1,18 +1,41 @@
 {
   "name": "dungeonmaestro-soundboard",
   "version": "1.0.0",
-  "description": "A soundboard application for TTRPG players.",
+  "description": "A cozy soundboard application for DM's built using Electron.",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --x64 --win --config.win.artifactName=${productName}-Setup-${version}.${ext} --config.win.publisherName=\"Your Name\" --config.nsis.oneClick=false --config.nsis.allowToChangeInstallationDirectory=true --config.nsis.runAfterFinish=false --publish never"
   },
-  "author": "",
+  "author": "Gabe Lytle",
   "license": "ISC",
+  "build": {
+    "appId": "https://github.com/GooberGabe/DungeonMaestro",
+    "productName": "DungeonMaestro",
+    "mac": {
+      "category": "public.app-category.music"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Audio"
+    }
+  },
   "devDependencies": {
-    "electron": "latest"
+    "electron": "latest",
+    "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9"
   },
   "dependencies": {
-    "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7"
+    "better-sqlite3": "^8.7.0"
   }
 }

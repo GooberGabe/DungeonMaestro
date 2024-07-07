@@ -55,7 +55,7 @@ function setupIPCHandlers() {
 
 app.whenReady().then(async () => {
   db = new SoundboardDB();
-  await db.dbPromise; // Wait for the database to be initialized
+  await db.dbPromise;
   setupIPCHandlers();
   createWindow();
 
