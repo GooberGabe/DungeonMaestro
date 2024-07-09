@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder --x64 --win --config.win.artifactName=${productName}-Setup-${version}.${ext} --config.win.publisherName=\"Gabe Lytle\" --config.nsis.oneClick=false --config.nsis.allowToChangeInstallationDirectory=true --config.nsis.runAfterFinish=false --publish never"
+    "dist": "electron-builder"
   },
   "author": "Gabe Lytle",
   "license": "ISC",
@@ -19,17 +19,30 @@
       "owner": "GooberGabe",
       "repo": "DungeonMaestro"
     },
+    "files": [
+      "**/*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.editorconfig",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+    ],
     "win": {
-      "target": ["portable"],
+      "target": ["nsis"],
       "icon": "assets/logo.ico"
     },
-    "mac": {
-      "target": ["dmg"],
-      "icon": "assets/logo.ico"
-    },
-    "linux": {
-      "target": ["AppImage"],
-      "icon": "assets/logo.png"
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "DungeonMaestro"
     }
   },
   "devDependencies": {
@@ -39,7 +52,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^8.7.0",
-    "electron-updater": "^6.2.1"
+    "electron-updater": "^6.2.1",
+    "ffmpeg-static": "^5.2.0"
   }
 }
-
