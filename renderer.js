@@ -397,6 +397,7 @@ class Scene {
         this.element = this.createSceneElement();
         _soundboard.scenesContainer.appendChild(this.element);
         this.contentElement = this.element.querySelector('.scene-content');
+        this.renderSounds();
         this.isOpen = true;
     }
 
@@ -405,19 +406,48 @@ class Scene {
         sceneEl.className = 'scene';
         sceneEl.dataset.sceneId = this.id;
         sceneEl.innerHTML = `
-            <div class="scene-header">
+            <div class="scene-header" draggable="true">
                 <span>${this.name}</span>
                 <button class="toggle-scene">▼</button>
             </div>
-            <div class="scene-content">
-                <button class="add-sound-button">+ Add Soundscape</button>
-            </div>
+            <div class="scene-content"></div>
         `;
 
+        /*
+        <div class="scene-content">
+            <button class="add-sound-button">+ Add Soundscape</button>
+        </div>
+        */    
+
+        sceneEl.addEventListener('click', (e) => {
+            if (soundboard.deleteMode) {
+                e.stopPropagation();
+                soundboard.deleteScene(this);
+            }
+        });
+
         sceneEl.querySelector('.toggle-scene').addEventListener('click', () => this.toggleContent());
-        sceneEl.querySelector('.add-sound-button').addEventListener('click', () => soundboard.showAddSoundDialog(this));
+        //sceneEl.querySelector('.add-sound-button').addEventListener('click', () => soundboard.showAddSoundDialog(this));
 
         return sceneEl;
+    }
+
+    renderSounds() {
+        const contentEl = this.contentElement;
+        // Clear existing sounds
+        contentEl.innerHTML = '';
+        // Re-add sorted sounds
+        this.sounds.forEach(sound => {
+            const soundEl = sound.createSoundElement();
+            sound.element = soundEl;
+            contentEl.appendChild(soundEl);
+        });
+        // Add the "Add Sound" button at the end
+        const addSoundButton = document.createElement('button');
+        addSoundButton.className = 'add-sound-button';
+        addSoundButton.textContent = '+ Add Soundscape';
+        addSoundButton.addEventListener('click', () => soundboard.showAddSoundDialog(this));
+        contentEl.appendChild(addSoundButton);
     }
 
     addSound(sound) {
@@ -425,6 +455,7 @@ class Scene {
         this.sounds.push(sound);
         sound.scene = this;
         this.contentElement.insertBefore(sound.element, this.contentElement.querySelector('.add-sound-button'));
+        this.sortSounds();
     }
 
     removeSound(sound) {
@@ -432,7 +463,20 @@ class Scene {
         if (index !== -1) {
             this.sounds.splice(index, 1);
             this.contentElement.removeChild(sound.element);
+            window.electronAPI.deleteSound(sound.id);
         }
+    }
+
+    sortSounds() {
+        const typeOrder = { 'effect': 0, 'ambient': 1, 'music': 2 };
+        this.sounds.sort((a, b) => {
+            return typeOrder[a.type] - typeOrder[b.type];
+        });
+        this.renderSounds();
+    }
+
+    toggleDeleteMode(isDeleteMode) {
+        this.element.classList.toggle('deletable', isDeleteMode);
     }
 
     toggleContent() {
@@ -456,13 +500,18 @@ class Scene {
 class VisualQueue extends Scene {
     constructor(soundboard) {
         super("Queue",soundboard);
+        //this.contentElement.querySelector('.add-sound-button').remove();
         this.element.classList.add('visual-queue');
+        
         //this.initDragAndDrop();
+    }
+
+    renderSounds() {
+
     }
 
     createSceneElement() {
         const sceneEl = super.createSceneElement();
-        sceneEl.querySelector('.add-sound-button').remove();
         return sceneEl;
     }
 
@@ -504,7 +553,7 @@ class VisualQueue extends Scene {
     }
 
     removeSound(sound) {
-        console.log("Removed sound.");
+        console.log("Removed sound from queue.");
         const index = this.sounds.findIndex(s => s.originalSound === sound);
         if (index !== -1) {
             this.sounds.splice(index, 1);
@@ -540,6 +589,9 @@ class Soundboard {
         this.initSceneDragAndDrop();
         this.initQueueDragAndDrop();
         this.currentlyPlayingMusic = null;
+
+        this.deleteMode = false;
+        this.initDeleteSceneButton();
         
         this.initEventListeners();
         console.log('Soundboard initialized');
@@ -631,9 +683,10 @@ class Soundboard {
         document.addEventListener('mouseup', stopResize);
     }
 
-    addScene(name) {
+    addScene(name, save=true) {
         const scene = new Scene(name, soundboard);
         this.scenes.push(scene);
+        if (save) this.saveState();
         //this.scenesContainer.appendChild(scene.element); -- Redundant; is already in constructor
         return scene;
     }
@@ -650,6 +703,39 @@ class Soundboard {
         document.getElementById('sound-source-type').value = 'local';
         document.getElementById('sound-type').value = 'music';
         this.addSoundDialog.showModal();
+    }
+
+    initDeleteSceneButton() {
+        const deleteSceneButton = document.getElementById('delete-scene');
+        deleteSceneButton.addEventListener('click', () => this.toggleDeleteMode());
+    }
+
+    toggleDeleteMode() {
+        this.deleteMode = !this.deleteMode;
+        document.body.classList.toggle('delete-mode', this.deleteMode);
+        this.scenes.forEach(scene => scene.toggleDeleteMode(this.deleteMode));
+        this.toggleMenu(); // Close the menu after activating delete mode
+    }
+
+    async deleteScene(scene) { // nasty little function
+        try {
+            const result = await window.electronAPI.deleteScene(scene.id);
+            if (result.success) {
+                const index = this.scenes.indexOf(scene);
+                if (index > -1) {
+                    this.scenes.splice(index, 1);
+                    scene.element.remove();
+                }
+                console.log('Scene deleted successfully');
+            } else {
+                console.error('Failed to delete scene:', result.error);
+                alert(`Failed to delete scene: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Error deleting scene:', error);
+            alert('An error occurred while deleting the scene');
+        }
+        this.toggleDeleteMode(); // Exit delete mode after attempting to delete a scene
     }
 
     addSound(sound) {
@@ -865,7 +951,7 @@ class Soundboard {
             const queue = await window.electronAPI.getQueue();
 
             scenes.forEach(sceneData => {
-                const scene = this.addScene(sceneData.name);
+                const scene = this.addScene(sceneData.name,false);
                 scene.id = sceneData.id;
             })
 
@@ -901,39 +987,41 @@ class Soundboard {
     }
 
     initSceneDragAndDrop() {
-        this.scenes.forEach(scene => this.initSceneDraggable(scene.element));
+        this.scenesContainer = document.getElementById('scenes-container');
+        this.scenesContainer.addEventListener('dragstart', this.handleSceneDragStart.bind(this));
         this.scenesContainer.addEventListener('dragover', this.handleSceneDragOver.bind(this));
+        this.scenesContainer.addEventListener('dragleave', this.handleSceneDragLeave.bind(this));
         this.scenesContainer.addEventListener('drop', this.handleSceneDrop.bind(this));
-    }
-
-    initSceneDraggable(sceneElement) {
-        sceneElement.setAttribute('draggable', true);
-        sceneElement.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', sceneElement.dataset.sceneId);
-            sceneElement.classList.add('dragging');
-        });
-        sceneElement.addEventListener('dragend', () => {
-            sceneElement.classList.remove('dragging');
-        });
+        this.scenesContainer.addEventListener('dragend', this.handleSceneDragEnd.bind(this));
     }
 
     initQueueDragAndDrop() {
-        this.queueContainer.addEventListener('dragstart', this.handleDragStart.bind(this));
-        this.queueContainer.addEventListener('dragover', this.handleDragOver.bind(this));
-        this.queueContainer.addEventListener('dragleave', this.handleDragLeave.bind(this));
-        this.queueContainer.addEventListener('drop', this.handleDrop.bind(this));
-        this.queueContainer.addEventListener('dragend', this.handleDragEnd.bind(this));
+        this.queueContainer.addEventListener('dragstart', this.handleQueueDragStart.bind(this));
+        this.queueContainer.addEventListener('dragover', this.handleQueueDragOver.bind(this));
+        this.queueContainer.addEventListener('dragleave', this.handleQueueDragLeave.bind(this));
+        this.queueContainer.addEventListener('drop', this.handleQueueDrop.bind(this));
+        this.queueContainer.addEventListener('dragend', this.handleQueueDragEnd.bind(this));
     }
 
-    handleDragStart(e) {
+    handleQueueDragStart(e) {
+        this.draggedElement = e.target;
         if (e.target.classList.contains('queued-sound')) {
-            this.draggedElement = e.target;
             e.dataTransfer.setData('text/plain', e.target.dataset.soundId);
             e.target.style.opacity = '0.5';
         }
     }
 
-    handleDragOver(e) {
+    handleSceneDragStart(e) {
+        console.log("START")
+        this.draggedElement = e.target;
+        console.log(e.target);
+        if (e.target.classList.contains('scene-header')) {
+            //e.target.closest('.scene').classList.add('dragging');
+            e.target.classList.add('dragging');
+        }
+    }
+
+    handleQueueDragOver(e) {
         e.preventDefault();
         if (this.draggedElement) {
             const targetElement = e.target.closest('.queued-sound');
@@ -964,17 +1052,43 @@ class Soundboard {
         }
     }
 
-    handleDragLeave(e) {
+    handleSceneDragOver(e) {
+        e.preventDefault();
+        //console.log(e.target)
+        if (this.draggedElement) {
+            const closestScene = this.getDragAfterElement(this.scenesContainer, e.clientY);
+            if (e.target.classList.contains('scene-header'))  {
+                if (closestScene && !closestScene.classList.contains('visual-queue')) {
+                    this.scenesContainer.insertBefore(this.draggedElement.parentNode, closestScene);
+                } else {
+                    this.scenesContainer.appendChild(this.draggedElement.parentNode);
+                }
+            }
+            
+        }
+    }
+
+    handleQueueDragLeave(e) {
         if (e.target.classList.contains('queued-sound')) {
             e.target.style.borderTop = '';
             e.target.style.borderBottom = '';
         }
     }
 
-    handleDrop(e) {
+    handleSceneDragLeave(e) {
+        console.log("LEAVE")
+        if (e.target.classList.contains('scene-header')) {
+            //e.target.classList.remove('dragging');
+        }
+    }
+
+    handleQueueDrop(e) {
         e.preventDefault();
+        
         if (this.draggedElement) {
+            console.log(e.target)
             const targetElement = e.target.closest('.queued-sound');
+            
             if (targetElement && targetElement !== this.draggedElement) {
                 const rect = targetElement.getBoundingClientRect();
                 const isGridLayout = window.innerWidth >= 768;
@@ -1001,42 +1115,39 @@ class Soundboard {
         }
     }
 
-    handleDragEnd(e) {
+    handleSceneDrop(e) {
+        console.log("DROP")
+        /*
+        e.preventDefault();
         if (this.draggedElement) {
+            const targetElement = e.target.closest('.queued-sound');
+            if (e.target.classList.contains('scene-header')) {
+                console.log("Dropped scene");
+                this.draggedElement.classList.remove('dragging');
+                this.updateSceneOrder();
+            }
+        }
+        */
+    }
+
+    handleQueueDragEnd(e) {
+        if (this.draggedElement) {
+            
             this.draggedElement.style.opacity = '1';
             this.draggedElement = null;
             
             this.queueContainer.querySelectorAll('.queued-sound').forEach(el => {
                 el.classList.remove('drag-over-top', 'drag-over-bottom');
             });
+            
         }
     }
 
-    initSoundDraggable(soundElement) {
-        soundElement.setAttribute('draggable', true);
-        soundElement.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', soundElement.dataset.soundId);
-            soundElement.classList.add('dragging');
-        });
-        soundElement.addEventListener('dragend', () => {
-            soundElement.classList.remove('dragging');
-        });
-    }
-
-    handleSceneDragOver(e) {
-        e.preventDefault();
-        const afterElement = this.getDragAfterElement(this.scenesContainer, e.clientY);
-        const draggable = document.querySelector('.scene.dragging');
-        if (draggable && afterElement) {
-            this.scenesContainer.insertBefore(draggable, afterElement);
-        }
-    }
-
-    handleSceneDrop(e) {
-        e.preventDefault();
-        const sceneId = e.dataTransfer.getData('text/plain');
-        const sceneElement = document.querySelector(`.scene[data-scene-id="${sceneId}"]`);
-        if (sceneElement) {
+    handleSceneDragEnd(e) {
+        console.log("END")
+        if (e.target.classList.contains('scene-header')) {
+            //document.querySelector('.scene.dragging')?.classList.remove('dragging');
+            this.draggedElement.classList.remove('dragging');
             this.updateSceneOrder();
         }
     }
@@ -1054,9 +1165,13 @@ class Soundboard {
         }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
-    updateSceneOrder() {
-        this.scenes = Array.from(this.scenesContainer.querySelectorAll('.scene'))
+    async updateSceneOrder() {
+        console.log(this.scenes)
+        this.scenes = Array.from(this.scenesContainer.querySelectorAll('.scene:not(.visual-queue)'))
             .map(el => this.scenes.find(scene => scene.element.dataset.sceneId === el.dataset.sceneId));
+            console.log(this.scenes)
+        await window.electronAPI.updateSceneOrder(this.scenes.map(scene => scene.id));
+    
     }
 
     updateQueueOrder() {

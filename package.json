@@ -1,38 +1,35 @@
 {
   "name": "dungeonmaestro-soundboard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A cozy soundboard application for DM's built using Electron.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder --x64 --win --config.win.artifactName=${productName}-Setup-${version}.${ext} --config.win.publisherName=\"Your Name\" --config.nsis.oneClick=false --config.nsis.allowToChangeInstallationDirectory=true --config.nsis.runAfterFinish=false --publish never"
+    "dist": "electron-builder --x64 --win --config.win.artifactName=${productName}-Setup-${version}.${ext} --config.win.publisherName=\"Gabe Lytle\" --config.nsis.oneClick=false --config.nsis.allowToChangeInstallationDirectory=true --config.nsis.runAfterFinish=false --publish never"
   },
   "author": "Gabe Lytle",
   "license": "ISC",
   "build": {
     "appId": "https://github.com/GooberGabe/DungeonMaestro",
     "productName": "DungeonMaestro",
+    "icon": "assets/logo.ico",
     "publish": {
       "provider": "github",
       "owner": "GooberGabe",
       "repo": "DungeonMaestro"
     },
-    "mac": {
-      "category": "public.app-category.music"
-    },
     "win": {
-      "target": [
-        "nsis",
-        "portable"
-      ]
+      "target": ["portable"],
+      "icon": "assets/logo.ico"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "assets/logo.ico"
     },
     "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "category": "Audio"
+      "target": ["AppImage"],
+      "icon": "assets/logo.png"
     }
   },
   "devDependencies": {
@@ -45,3 +42,4 @@
     "electron-updater": "^6.2.1"
   }
 }
+
