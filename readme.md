@@ -2,7 +2,7 @@
 
 **Project Title**: DungeonMaestro
 
-**Project Description**: A Sounboard application for DM's.
+**Project Description**: A Soundboard application for DM's.
 
 **Project Goals**: 
 * Provide stable playback for mp3 files or youtube links
@@ -50,6 +50,8 @@ I found these websites useful in developing this software:
 
 The following items I plan to fix, improve, and/or add to this project in the future:
 
-* [ ] Ability to rearrange/remove Scenes
+* [ ] Cross-fade
+* [ ] Spotify integration
+* [ ] Scrubbing bar
 * [ ] File explorer interface for AddSound
 * [ ] Auto-update
