@@ -176,8 +176,9 @@ body {
 }
 
 body.delete-mode {
-    background-color: rgba(255, 0, 0, 0.1); /* Slight red tint to indicate delete mode */
+    /* background-color: rgba(255, 0, 0, 1); /* Slight red tint to indicate delete mode */
 }
+
 
 .scene.deletable {
     border: 2px dashed red;

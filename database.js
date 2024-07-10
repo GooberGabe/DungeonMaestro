@@ -99,6 +99,21 @@ class SoundboardDB {
         transaction(sceneIds);
     }
 
+    async updateSoundName(soundId, newName) {
+        const stmt = this.db.prepare('UPDATE sounds SET name = ? WHERE id = ?');
+        stmt.run(newName, soundId);
+    }
+
+    async updateSoundVolume(soundId, newVolume) {
+        const stmt = this.db.prepare('UPDATE sounds SET volume = ? WHERE id = ?');
+        stmt.run(newVolume, soundId);
+    }
+
+    async updateSoundSource(soundId, newSource) {
+        const stmt = this.db.prepare('UPDATE sounds SET source = ? WHERE id = ?');
+        stmt.run(newSource, soundId);
+    }
+
 
     async deleteScene(sceneId) {
         const transaction = this.db.transaction((id) => {

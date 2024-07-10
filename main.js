@@ -3,6 +3,14 @@ const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const SoundboardDB = require('./database.js');
 
+if (process.env.NODE_ENV === 'production') {
+  // In production, use the bundled version
+  require('./dist/bundle.js');
+}
+else 
+{
+
+
 let mainWindow;
 let db;
 
@@ -39,7 +47,7 @@ function createWindow() {
   //});
 
   // Uncomment to open DevTools by default
-  // win.webContents.openDevTools();
+   win.webContents.openDevTools();
 }
 
 // Database handler stuff
@@ -59,6 +67,18 @@ function setupIPCHandlers() {
   ipcMain.handle('update-scene-order', async (event, sceneIds) => {
     await db.updateSceneOrder(sceneIds);
   });
+  ipcMain.handle('update-sound-name', async (event, soundId, newName) => {
+    await db.updateSoundName(soundId, newName);
+  });
+
+  ipcMain.handle('update-sound-volume', async (event, soundId, newVolume) => {
+      await db.updateSoundVolume(soundId, newVolume);
+  });
+
+  ipcMain.handle('update-sound-source', async (event, soundId, newSource) => {
+      await db.updateSoundSource(soundId, newSource);
+  });
+
   ipcMain.handle('delete-scene', async (event, sceneId) => {
     if (!db) {
         throw new Error('Database not initialized');
@@ -77,6 +97,7 @@ function setupIPCHandlers() {
     await db.deleteAllScenes();
     console.log('All scenes deleted from database');
   });
+
 }
 
 app.whenReady().then(async () => {
@@ -138,3 +159,5 @@ async function uninstallApp() {
 
 // Add IPC handler for uninstall
 ipcMain.on('uninstall-app', uninstallApp);
+
+}

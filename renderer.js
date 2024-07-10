@@ -120,7 +120,11 @@ class Sound {
         dialog.className = 'sound-options-dialog';
         dialog.innerHTML = `
             <form method="dialog">
-                <h3>Options for "${this.name}"</h3>
+                <h3>Options for "${this.name}" (${this.type.charAt(0).toUpperCase() + this.type.slice(1)})</h3>
+                <label>
+                    Rename:
+                    <input type="text" id="sound-name-input" value="${this.name}">
+                </label>
                 <label>
                     Volume:
                     <input type="range" min="0" max="1" step="0.01" value="${this.volume}" id="volume-slider">
@@ -137,13 +141,24 @@ class Sound {
             </form>
         `;
 
+        const nameInput = dialog.querySelector('#sound-name-input');
         const volumeSlider = dialog.querySelector('#volume-slider');
         const sourceInput = dialog.querySelector('#source-input');
 
         dialog.querySelector('form').addEventListener('submit', (e) => {
             e.preventDefault();
-            this.setVolume(parseFloat(volumeSlider.value));
-            if (sourceInput.value != this.source) this.updateSource(sourceInput.value);
+            const newName = nameInput.value.trim();
+            const newVolume = parseFloat(volumeSlider.value);
+            const newSource = sourceInput.value.trim();
+
+            if (newName && newName !== this.name) {
+                this.rename(newName);
+            }
+            this.setVolume(newVolume);
+            if (newSource && newSource !== this.source) {
+                this.updateSource(newSource);
+            }
+            
             dialog.close();
         });
 
@@ -166,6 +181,7 @@ class Sound {
         console.log("Volume set (SOUND)")
         this.volume = volume;
         this.updateEffectiveVolume();
+        soundboard.updateSoundVolume(this);
     }
 
     updateEffectiveVolume() {
@@ -176,6 +192,13 @@ class Sound {
         } else if (this.audio) {
             this.audio.volume = effectiveVolume;
         }
+    }
+
+    rename(newName) {
+        this.name = newName;
+        this.element.querySelector('.sound-name').textContent = newName;
+        soundboard.updateSoundName(this);
+        this.scene.sortSounds();
     }
 
     updateSource(newSource) {
@@ -190,6 +213,7 @@ class Sound {
                 this.audio.loop = true;
             }
         }
+        soundboard.updateSoundSource(this);
     }
 
     delete() {
@@ -470,8 +494,13 @@ class Scene {
     sortSounds() {
         const typeOrder = { 'effect': 0, 'ambient': 1, 'music': 2 };
         this.sounds.sort((a, b) => {
-            return typeOrder[a.type] - typeOrder[b.type];
+            let diff = typeOrder[a.type] - typeOrder[b.type];
+            if (diff != 0) return diff;
+            if (a.name < b.name) return -1;
+            if (a.name > b.name) return 1; 
+            return 0;
         });
+        
         this.renderSounds();
     }
 
@@ -736,6 +765,36 @@ class Soundboard {
             alert('An error occurred while deleting the scene');
         }
         this.toggleDeleteMode(); // Exit delete mode after attempting to delete a scene
+    }
+
+    async updateSoundName(sound) {
+        try {
+            await window.electronAPI.updateSoundName(sound.id, sound.name);
+            console.log('Sound name updated successfully');
+        } catch (error) {
+            console.error('Failed to update sound name:', error);
+            // Optionally, revert the name change in the UI
+            sound.name = await window.electronAPI.getSoundName(sound.id);
+            sound.element.querySelector('.sound-name').textContent = sound.name;
+        }
+    }
+
+    async updateSoundVolume(sound) {
+        try {
+            await window.electronAPI.updateSoundVolume(sound.id, sound.volume);
+            console.log('Sound volume updated successfully');
+        } catch (error) {
+            console.error('Failed to update sound volume:', error);
+        }
+    }
+
+    async updateSoundSource(sound) {
+        try {
+            await window.electronAPI.updateSoundSource(sound.id, sound.source);
+            console.log('Sound source updated successfully');
+        } catch (error) {
+            console.error('Failed to update sound source:', error);
+        }
     }
 
     addSound(sound) {
@@ -1167,6 +1226,7 @@ class Soundboard {
 
     async updateSceneOrder() {
         console.log(this.scenes)
+
         this.scenes = Array.from(this.scenesContainer.querySelectorAll('.scene:not(.visual-queue)'))
             .map(el => this.scenes.find(scene => scene.element.dataset.sceneId === el.dataset.sceneId));
             console.log(this.scenes)
