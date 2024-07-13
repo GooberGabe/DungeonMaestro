@@ -38,13 +38,28 @@ body {
     border-bottom: 2px solid var(--accent-secondary);
 }
 
+#logo-container {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+    -webkit-app-region: drag; 
+}
+
+#app-logo {
+    width: 24px; 
+    height: 24px; 
+    pointer-events: none;
+}
+
 #drag-region {
+    flex-grow: 1;
     font-family: 'Alegreya', serif;
-    font-size: 16px; /* Slightly reduced font size */
+    font-size: 16px; 
     font-weight: 700;
 }
 
 #menu {
+    -webkit-app-region: no-drag;
     position: absolute;
     top: 40px;
     right: 15px;
@@ -55,6 +70,7 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     z-index: 1000;
     min-width: 150px;
+    transition: color 0.3s ease;
 }
 
 #menu-button {
@@ -103,7 +119,7 @@ body {
 }
 
 #content::-webkit-scrollbar {
-    width: 8px;
+    width: 9px;
 }
 
 #content::-webkit-scrollbar-track {
@@ -131,13 +147,13 @@ body {
 }
 
 .scene-header {
-    padding: 1px 10px; /* Reduced padding */
+    padding: 1px 10px;
     cursor: move;
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-family: 'Alegreya', serif;
-    font-size: 16px; /* Slightly reduced font size */
+    font-size: 16px;
     font-weight: 700;
     background-color: rgba(255, 255, 255, 0.05);
     transition: background-color 0.3s ease;
@@ -175,10 +191,6 @@ body {
     display: none;
 }
 
-body.delete-mode {
-    /* background-color: rgba(255, 0, 0, 1); /* Slight red tint to indicate delete mode */
-}
-
 
 .scene.deletable {
     border: 2px dashed red;
@@ -198,19 +210,43 @@ body.delete-mode {
     border-top: 2px solid var(--accent-color);
 }
 
-.progress-bar {
-    height: 3px;
-    background-color: rgba(255, 255, 255, 0.2);
-    margin-top: 4px;
+.progress-bar-container {
+    position: relative;
+    height: 6px;
+    margin: 5px 0;
     display: none;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.2);
+    display: none;
+    cursor: default;
+}
+
+.sound.playing .progress-bar {
+    cursor: pointer; /* Pointer cursor when playing */
 }
 
 .progress {
     height: 100%;
     background-color: var(--accent-secondary);
     width: 0;
-    transition: width 0.5s linear;
+    transition: width 0.1s linear;
 }
+
+.timestamp-tooltip {
+    position: absolute;
+    top: -25px;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    display: none;
+}
+
 
 .sound, .queued-sound {
     background-color: rgba(255, 255, 255, 0.05);
@@ -299,6 +335,10 @@ body.delete-mode {
 .dialog-buttons button#delete-sound {
     background-color: #e74c3c;
     color: var(--text-primary);
+}
+
+.scene-content p {
+    margin: 0;
 }
 
 .queued-sound {
@@ -473,7 +513,7 @@ body.delete-mode {
     color: var(--text-primary);
     font-size: 16px; /* Slightly reduced font size */
     cursor: pointer;
-    padding: 0 8px; /* Reduced padding */
+    padding: 0 4px; /* Reduced padding */
     transition: color 0.3s ease;
 }
 
@@ -589,7 +629,7 @@ dialog button[type="button"]:hover {
 
 @keyframes pulse {
     0% { opacity: 1; }
-    50% { opacity: 0.6; }
+    50% { opacity: 0.5; }
     100% { opacity: 1; }
 }
 
@@ -651,6 +691,9 @@ dialog button[type="button"]:hover {
         margin: 0 4px;
     }
     .progress-bar {
+        display: block;
+    }
+    .progress-bar-container {
         display: block;
     }
 

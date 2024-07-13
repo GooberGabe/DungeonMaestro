@@ -11,6 +11,8 @@ class Sound {
         this.queued = false;
         this.id = `sound-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         this.volume = 1; // Individual sound volume
+        this.duration = 0;
+        this.currentTime = 0;
 
         if (this.isYouTube) {
             this.initYouTubePlayer();
@@ -34,12 +36,12 @@ class Sound {
             return;
         }
 
-        const playerContainer = document.createElement('div');
-        playerContainer.id = `youtube-player-${Date.now()}`;
-        playerContainer.style.display = 'none';
-        document.body.appendChild(playerContainer);
+        const playerElement = document.createElement('div');
+        playerElement.id = `youtube-player-${Date.now()}`;
+        playerElement.style.display = 'none';
+        document.body.appendChild(playerElement);
 
-        this.youtubePlayer = new YT.Player(playerContainer.id, {
+        this.youtubePlayer = new YT.Player(playerElement.id, {
             height: '0',
             width: '0',
             videoId: videoId,
@@ -73,12 +75,7 @@ class Sound {
 
     onYouTubePlayerStateChange(event) {
         if (event.data === YT.PlayerState.ENDED) {
-            if (this.type !== 'ambient') {
-                this.stop(); // This will reset the progress
-            } else {
-                // For ambient sounds, just reset the progress without stopping
-                this.resetProgress();
-            }
+            this.onEnded();
         }
     }
 
@@ -90,8 +87,11 @@ class Sound {
             <div class="sound-type-indicator"></div>
             <div class="sound-content">
                 <div class="sound-name">${this.name}</div>
-                <div class="progress-bar">
-                    <div class="progress"></div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar">
+                        <div class="progress"></div>
+                    </div>
+                    <div class="timestamp-tooltip">00:00</div>
                 </div>
             </div>
             <div class="sound-controls">
@@ -110,7 +110,16 @@ class Sound {
             soundEl.querySelector('.queue').addEventListener('click', () => {console.log("EVENT: addToQueue (Sound)"); this.addToQueue()});
         }
 
-        this.progressBar = soundEl.querySelector('.progress');
+        this.progressBar = soundEl.querySelector('.progress-bar');
+        this.progress = soundEl.querySelector('.progress');
+        this.timestampTooltip = soundEl.querySelector('.timestamp-tooltip');
+
+        this.progressBar.addEventListener('mousedown', this.handleScrubStart.bind(this));
+        this.progressBar.addEventListener('mousemove', this.handleScrubMove.bind(this));
+        this.progressBar.addEventListener('mouseleave', () => this.timestampTooltip.style.display = 'none');
+
+
+        //this.progressBar = soundEl.querySelector('.progress');
 
         return soundEl;
     }
@@ -223,16 +232,20 @@ class Sound {
     }
 
     play() {
+        this.isPlaying = true;
+        this.element.classList.add('playing');
+        this.progressBar.style.cursor = 'pointer';
+
         if (this.isYouTube) {
             if (this.youtubePlayer && this.youtubePlayer.playVideo) {
                 this.youtubePlayer.playVideo();
+                this.startYouTubeProgressUpdate();
             }
-            this.startYouTubeProgressUpdate();
+            
         } else {
             this.audio.play();
             this.startAudioProgressUpdate();
         }
-        this.isPlaying = true;
         this.element.classList.add('playing');
         if (this.scene) {
             this.scene.updatePlayingState();
@@ -276,6 +289,10 @@ class Sound {
     }
 
     stop() {
+        this.isPlaying = false;
+        this.element.classList.remove('playing');
+        this.progressBar.style.cursor = 'default';
+
         if (this.isYouTube) {
             if (this.youtubePlayer && this.youtubePlayer.stopVideo) {
                 this.youtubePlayer.stopVideo();
@@ -284,27 +301,95 @@ class Sound {
             this.audio.pause();
             this.audio.currentTime = 0;
         }
-        this.isPlaying = false;
-        this.element.classList.remove('playing');
+        
         if (this.scene) {
             this.scene.updatePlayingState();
         }
         this.stopProgressUpdate();
         this.resetProgress();
+        
+        if (this.type === 'music')
+        {
+            soundboard.playNextInQueue();
+        }
+    }
 
-        this.onEnded();
+    handleScrubStart(e) {
+        if (!this.isPlaying) return;
+
+        const scrubTime = this.getScrubTime(e);
+        this.scrub(scrubTime);
+        
+        const onMouseMove = (e) => {
+            if (this.isPlaying) {
+                this.scrub(this.getScrubTime(e));
+            }
+        };
+        const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+        
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    }
+
+    handleScrubMove(e) {
+        if (!this.isPlaying) return;
+
+        const scrubTime = this.getScrubTime(e);
+        this.updateTimestampTooltip(scrubTime);
+    }
+
+    getScrubTime(e) {
+        const rect = this.progressBar.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        return percent * this.duration;
+    }
+
+    scrub(scrubTime) {
+        if (!this.isPlaying) return;
+        
+        if (this.isYouTube) {
+            if (this.youtubePlayer && this.youtubePlayer.seekTo) {
+                this.youtubePlayer.seekTo(scrubTime, true);
+            }
+        } else if (this.audio) {
+            this.audio.currentTime = scrubTime;
+        }
+        this.updateProgress(scrubTime, this.duration);
+    }
+
+    updateTimestampTooltip(time) {
+        if (!this.isPlaying) {
+            this.timestampTooltip.style.display = 'none';
+            return;
+        }
+        this.timestampTooltip.textContent = this.formatTime(time);
+        this.timestampTooltip.style.display = 'block';
+        const rect = this.progressBar.getBoundingClientRect();
+        const percent = time / this.duration;
+        this.timestampTooltip.style.left = `${percent * rect.width}px`;
+    }
+
+    formatTime(time) {
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 
     updateProgress(currentTime, duration) {
-        if (this.progressBar) {
+        this.currentTime = currentTime;
+        this.duration = duration;
+        if (this.progress) {
             const progress = (currentTime / duration) * 100;
-            this.progressBar.style.width = `${progress}%`;
+            this.progress.style.width = `${progress}%`;
         }
     }
 
     resetProgress() {
-        if (this.progressBar) {
-            this.progressBar.style.width = '0%';
+        if (this.progress) {
+            this.progress.style.width = '0%';
         }
     }
 
@@ -315,7 +400,7 @@ class Sound {
             if (this.audio.ended) {
                 this.stop();
             }
-        }, 300);
+        }, 200);
     }
 
     startYouTubeProgressUpdate() {
@@ -326,7 +411,7 @@ class Sound {
                 const duration = this.youtubePlayer.getDuration();
                 this.updateProgress(currentTime, duration);
             }
-        }, 300);
+        }, 200);
     }
 
     stopProgressUpdate() {
@@ -370,17 +455,11 @@ class Sound {
     }
 
     onEnded() {
-        if (this.type !== 'ambient') {  // Ambient sounds loop, so we don't need to update their state
-            this.isPlaying = false;
-            this.element.classList.remove('playing');
-            if (this.scene) {
-                this.scene.updatePlayingState();
-            }
-            if (this.type === 'music')
-            {
-                console.log("NEXT!")
-                soundboard.playNextInQueue();
-            }
+        
+        this.stop();
+        if (this.type === 'ambient') 
+        {
+            this.play();
         }
         
     }
@@ -1244,7 +1323,7 @@ class Soundboard {
 
 
 let keySequence = '';
-const secretCode = 'deletescenes';
+const secretCode = 'deletescenesx';
 
 // This is just for me, to be able to delete all Scenes. 
 document.addEventListener('keydown', (event) => {
