@@ -402,14 +402,13 @@ class Sound {
         }
 
         // How many increments will it take to bring the fade multiplier to 0? 
-        if (soundboard.fadeAmount > 0) {
+        if (soundboard.fadeAmount > 0 && duration > 0) {
             let numIncrements = 1 / this.getFadeIncrement();
             let remainingTime = duration - currentTime;
             let threshold = numIncrements * .2; // make sure everything is in seconds
             //console.log("fm:"+this.fadeMultiplier+", rt:"+remainingTime+", thresh:"+threshold);
             
             if (this.fadeMultiplier == 1 && remainingTime <= threshold && this.type === "music") {
-                console.log("THRESHOLD MET")
                 soundboard.playNextInQueue();
                 this.startFadeOut();
             }
@@ -431,8 +430,8 @@ class Sound {
         this.fadeMultiplier = 1;
         this.fadeOutInterval = setInterval(() => {
             this.fadeMultiplier -= this.getFadeIncrement();
-            if (this.fadeMultiplier <= 0) {
-                this.fadeMultiplier = 0;
+            if (this.fadeMultiplier <= 0 || !this.isPlaying) {
+                this.fadeMultiplier = 1;
                 clearInterval(this.fadeOutInterval);
                 this.stop();
             }
@@ -445,7 +444,7 @@ class Sound {
         this.fadeMultiplier = 0;
         this.fadeInInterval = setInterval(() => {
             this.fadeMultiplier += this.getFadeIncrement();
-            if (this.fadeMultiplier >= 1) {
+            if (this.fadeMultiplier >= 1 || !this.isPlaying) {
                 this.fadeMultiplier = 1;
                 clearInterval(this.fadeInInterval);
             }
@@ -785,7 +784,7 @@ class Soundboard {
         });
         this.quitButton.addEventListener('click', () => this.quit());
         this.pauseButton.addEventListener('click', () => this.toggleGlobalPause());
-        this.skipButton.addEventListener('click', () => this.skipToNextTrack());
+        this.skipButton.addEventListener('click', () => this.playNextInQueue());
         
         document.addEventListener('click', () => {
             this.menu.classList.add('hidden');
@@ -979,8 +978,8 @@ class Soundboard {
     playNextInQueue() {
         if (this.musicQueue.length > 0) {
             const nextSound = this.musicQueue.shift();
-            this.playSound(nextSound);
             if (soundboard.fadeAmount > 0) nextSound.startFadeIn();
+            this.playSound(nextSound);
         } else {
             this.currentlyPlayingMusic = null;
         }
@@ -1034,15 +1033,12 @@ class Soundboard {
         this.scenes.forEach(scene => {
             scene.sounds.forEach(sound => {
                 if (sound.type === 'music' && sound.isPlaying) {
+                    console.log("softstop");
                     sound.softStop();
                 }
             });
         });
         this.currentlyPlayingMusic = null;
-    }
-
-    skipToNextTrack() {
-        this.playNextInQueue();
     }
 
     setGlobalVolume(volume) {

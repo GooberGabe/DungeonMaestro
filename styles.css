@@ -534,7 +534,7 @@ body {
 
 #volume-slider, #fade-slider, .sound-options-dialog input[type="range"] {
     -webkit-appearance: none;
-    width: 100px;
+    width: 80px;
     height: 4px;
     background: var(--text-secondary);
     outline: none;
@@ -777,5 +777,12 @@ dialog button[type="button"]:hover {
         width: 20px;
         height: 20px;
         font-size: 10px;
+    }
+
+    .add-sound-button {
+        height:23px;
+        font-size: 12px;
+        align-items: center;
+        padding: 0px;
     }
 }
