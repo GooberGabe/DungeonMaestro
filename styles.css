@@ -507,6 +507,17 @@ body {
     border-top: 2px solid var(--accent-secondary);
 }
 
+.slider-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+}
+
+.slider-container span {
+    margin-right: 5px;
+}
+
 #pause-button, #skip-button {
     background: none;
     border: none;
@@ -521,18 +532,22 @@ body {
     color: var(--accent-secondary);
 }
 
-#volume-slider, .sound-options-dialog input[type="range"] {
+#volume-slider, #fade-slider, .sound-options-dialog input[type="range"] {
+    -webkit-appearance: none;
     width: 100px;
     height: 4px;
-    -webkit-appearance: none;
     background: var(--text-secondary);
     outline: none;
-    border-radius: 2px;
-    margin: 0 10px;
-    flex: none;
+    opacity: 0.7;
+    transition: opacity 0.2s;
 }
 
-#volume-slider::-webkit-slider-thumb, .sound-options-dialog input[type="range"]::-webkit-slider-thumb {
+#volume-slider:hover, #fade-slider:hover, .sound-options-dialog input[type="range"]:hover {
+    opacity: 1;
+}
+
+#volume-slider::-webkit-slider-thumb, #fade-slider::-webkit-slider-thumb,
+.sound-options-dialog input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 16px;
@@ -542,18 +557,50 @@ body {
     cursor: pointer;
 }
 
-#volume-slider::-moz-range-thumb, .sound-options-dialog input[type="range"]::-moz-range-thumb {
+#volume-slider::-moz-range-thumb, #fade-slider::-moz-range-thumb, .sound-options-dialog input[type="range"]::-moz-range-thumb {
     width: 16px;
     height: 16px;
     border-radius: 50%;
     background: var(--accent-secondary);
     cursor: pointer;
     border: none;
+    position: relative;
 }
 
 .sound-options-dialog input[type="range"]:hover,
 #volume-slider:hover {
     opacity: 1;
+}
+
+#volume-slider::-webkit-slider-thumb::before,
+#fade-slider::-webkit-slider-thumb::before {
+    content: attr(title);
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+#volume-slider:hover::-webkit-slider-thumb::before,
+#fade-slider:hover::-webkit-slider-thumb::before {
+    opacity: 1;
+}
+
+.slider-container:hover::after {
+    opacity: 1;
+}
+
+.fade-container {
+    display: none;
 }
 
 dialog {
@@ -709,6 +756,10 @@ dialog button[type="button"]:hover {
     .queued-sound.drag-over-bottom {
         border-bottom: none;
         border-right: 2px solid white;
+    }
+
+    .fade-container {
+        display: flex;
     }
 
 }

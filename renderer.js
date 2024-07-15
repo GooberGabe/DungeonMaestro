@@ -11,6 +11,7 @@ class Sound {
         this.queued = false;
         this.id = `sound-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         this.volume = 1; // Individual sound volume
+        this.fadeMultiplier = 1;
         this.duration = 0;
         this.currentTime = 0;
 
@@ -104,7 +105,7 @@ class Sound {
 
         //soundEl.querySelector('.play').addEventListener('click', () => this.play());
         soundEl.querySelector('.play').addEventListener('click', () => soundboard.playSound(this));
-        soundEl.querySelector('.stop').addEventListener('click', () => this.stop());
+        soundEl.querySelector('.stop').addEventListener('click', () => this.softStop());
         soundEl.querySelector('.sound-options').addEventListener('click', () => this.showOptionsDialog());
         if (this.type === 'music') {
             soundEl.querySelector('.queue').addEventListener('click', () => {console.log("EVENT: addToQueue (Sound)"); this.addToQueue()});
@@ -195,7 +196,8 @@ class Sound {
 
     updateEffectiveVolume() {
         console.log("Effective volume set")
-        const effectiveVolume = this.volume * soundboard.volume;
+        let m = this.type == "effect" ? 1 : this.fadeMultiplier;
+        const effectiveVolume = this.volume * soundboard.volume * m;
         if (this.isYouTube && this.youtubePlayer) {
             this.youtubePlayer.setVolume(effectiveVolume * 100);
         } else if (this.audio) {
@@ -288,8 +290,26 @@ class Sound {
         }
     }
 
+    softStop() {
+        if (soundboard.fadeAmount == 0) 
+        {
+            this.stop();
+        }
+        else 
+        {
+            this.startFadeOut();
+        }   
+    }
+
     stop() {
+        if (this.fadeInInterval) {
+            clearInterval(this.fadeInInterval)
+        }
+        if (this.fadeOutInterval) {
+            clearInterval(this.fadeOutInterval)
+        }
         this.isPlaying = false;
+        this.fadeMultiplier = 1;
         this.element.classList.remove('playing');
         this.progressBar.style.cursor = 'default';
 
@@ -307,11 +327,6 @@ class Sound {
         }
         this.stopProgressUpdate();
         this.resetProgress();
-        
-        if (this.type === 'music')
-        {
-            soundboard.playNextInQueue();
-        }
     }
 
     handleScrubStart(e) {
@@ -385,6 +400,20 @@ class Sound {
             const progress = (currentTime / duration) * 100;
             this.progress.style.width = `${progress}%`;
         }
+
+        // How many increments will it take to bring the fade multiplier to 0? 
+        if (soundboard.fadeAmount > 0) {
+            let numIncrements = 1 / this.getFadeIncrement();
+            let remainingTime = duration - currentTime;
+            let threshold = numIncrements * .2; // make sure everything is in seconds
+            //console.log("fm:"+this.fadeMultiplier+", rt:"+remainingTime+", thresh:"+threshold);
+            
+            if (this.fadeMultiplier == 1 && remainingTime <= threshold && this.type === "music") {
+                console.log("THRESHOLD MET")
+                soundboard.playNextInQueue();
+                this.startFadeOut();
+            }
+        }
     }
 
     resetProgress() {
@@ -393,12 +422,43 @@ class Sound {
         }
     }
 
+    getFadeIncrement() {
+        return (1.15/soundboard.fadeMod) - (soundboard.fadeAmount/soundboard.fadeMod)
+    }
+
+    startFadeOut() {
+        clearInterval(this.fadeOutInterval);
+        this.fadeMultiplier = 1;
+        this.fadeOutInterval = setInterval(() => {
+            this.fadeMultiplier -= this.getFadeIncrement();
+            if (this.fadeMultiplier <= 0) {
+                this.fadeMultiplier = 0;
+                clearInterval(this.fadeOutInterval);
+                this.stop();
+            }
+            this.updateEffectiveVolume();
+        }, 100);
+    }
+
+    startFadeIn() {
+        clearInterval(this.fadeInInterval);
+        this.fadeMultiplier = 0;
+        this.fadeInInterval = setInterval(() => {
+            this.fadeMultiplier += this.getFadeIncrement();
+            if (this.fadeMultiplier >= 1) {
+                this.fadeMultiplier = 1;
+                clearInterval(this.fadeInInterval);
+            }
+            this.updateEffectiveVolume();
+        }, 200);
+    }
+
     startAudioProgressUpdate() {
         this.stopProgressUpdate(); // Clear any existing interval
         this.progressInterval = setInterval(() => {
             this.updateProgress(this.audio.currentTime, this.audio.duration);
             if (this.audio.ended) {
-                this.stop();
+                this.onEnded();
             }
         }, 200);
     }
@@ -455,7 +515,6 @@ class Sound {
     }
 
     onEnded() {
-        
         this.stop();
         if (this.type === 'ambient') 
         {
@@ -684,7 +743,11 @@ class Soundboard {
         this.pauseButton = document.getElementById('pause-button');
         this.skipButton = document.getElementById('skip-button');
         this.volumeSlider = document.getElementById('volume-slider');
+        this.fadeSlider = document.getElementById('fade-slider');
+        this.initSliders();
         this.volume = 1;
+        this.fadeAmount = 0;
+        this.fadeMod = 25;
         this.addSceneDialog = document.getElementById('add-scene-dialog');
         this.addSoundDialog = document.getElementById('add-sound-dialog');
         this.isGloballyPaused = false;
@@ -706,6 +769,10 @@ class Soundboard {
         
     }
 
+    getPlayingSounds() {
+        return this.scenes.flatMap(scene => scene.sounds.filter(sound => sound.isPlaying));
+    }
+
     initEventListeners() {
         console.log('Adding click event listener to menu button');
         this.menuButton.addEventListener('click', (event) => {
@@ -716,7 +783,6 @@ class Soundboard {
             this.showAddSceneDialog();
             this.toggleMenu();
         });
-        this.volumeSlider.addEventListener('input', (e) => this.setGlobalVolume(e.target.value));
         this.quitButton.addEventListener('click', () => this.quit());
         this.pauseButton.addEventListener('click', () => this.toggleGlobalPause());
         this.skipButton.addEventListener('click', () => this.skipToNextTrack());
@@ -761,6 +827,26 @@ class Soundboard {
             this.addSoundDialog.close();
         });
         
+    }
+
+    initSliders() {
+        this.volumeSlider.addEventListener('input', (e) => {
+            this.setGlobalVolume(e.target.value);
+            this.updateSliderTooltip(e.target, 'Volume');
+        });
+        this.fadeSlider.addEventListener('input', (e) => {
+            this.setFadeAmount(e.target.value / 100);
+            this.updateSliderTooltip(e.target, 'Cross-fade');
+        });
+
+        // Initialize tooltips
+        this.updateSliderTooltip(this.volumeSlider, 'Volume');
+        this.updateSliderTooltip(this.fadeSlider, 'Cross-fade');
+    }
+
+    updateSliderTooltip(slider, baseText) {
+        const value = Math.round(slider.value);
+        slider.title = `${baseText}: ${value}%`;
     }
 
     initResizeHandle() {
@@ -894,6 +980,7 @@ class Soundboard {
         if (this.musicQueue.length > 0) {
             const nextSound = this.musicQueue.shift();
             this.playSound(nextSound);
+            if (soundboard.fadeAmount > 0) nextSound.startFadeIn();
         } else {
             this.currentlyPlayingMusic = null;
         }
@@ -947,7 +1034,7 @@ class Soundboard {
         this.scenes.forEach(scene => {
             scene.sounds.forEach(sound => {
                 if (sound.type === 'music' && sound.isPlaying) {
-                    sound.stop();
+                    sound.softStop();
                 }
             });
         });
@@ -955,21 +1042,29 @@ class Soundboard {
     }
 
     skipToNextTrack() {
-        if (this.currentlyPlayingMusic) {
-            this.currentlyPlayingMusic.stop();
-        }
-        else if (this.musicQueue.length > 0) {
-            this.playNextInQueue();
-        }
+        this.playNextInQueue();
     }
 
     setGlobalVolume(volume) {
         this.volume = parseFloat(volume/100);
+        
         this.scenes.forEach(scene => {
             scene.sounds.forEach(sound => {
-                sound.setVolume(this.volume);
+                sound.updateEffectiveVolume();
             });
         });
+        
+    }
+
+    setFadeAmount(fadeAmount) {
+        this.fadeAmount = fadeAmount;
+        /*
+        this.scenes.forEach(scene => {
+            scene.sounds.forEach(sound => {
+                sound.updateEffectiveVolume();
+            });
+        });
+        */
     }
 
     addToMusicQueue(sound) {
