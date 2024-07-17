@@ -57,6 +57,7 @@ class SoundboardDB {
     }
 
     saveSound(sound) {
+        console.log("++ Saved sound id "+sound.id);
         const stmt = this.db.prepare('INSERT OR REPLACE INTO sounds (id, scene_id, name, source, type, volume) VALUES (?, ?, ?, ?, ?, ?)');
         stmt.run(sound.id, sound.scene_id, sound.name, sound.source, sound.type, sound.volume);
     }

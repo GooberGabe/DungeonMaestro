@@ -611,12 +611,13 @@ class Scene {
         contentEl.appendChild(addSoundButton);
     }
 
-    addSound(sound) {
+    addSound(sound,save=false) {
         console.log("Added sound to Scene.")
         this.sounds.push(sound);
         sound.scene = this;
         this.contentElement.insertBefore(sound.element, this.contentElement.querySelector('.add-sound-button'));
         this.sortSounds();
+        if (save) soundboard.saveState()
     }
 
     removeSound(sound) {
@@ -681,7 +682,7 @@ class VisualQueue extends Scene {
         return sceneEl;
     }
 
-    addSound(sound) {
+    addSound(sound,save=false) {
         console.log("Added sound to Queue.")
         const queuedSound = new QueuedSound(sound);
         super.addSound(queuedSound);
@@ -817,9 +818,9 @@ class Soundboard {
             const type = document.getElementById('sound-type').value;
             if (name && source && (type === 'music' || type === 'ambient' || type === 'effect')) {
                 var s = new Sound(name, source, type);
-                soundboard.addSound(s);
+                soundboard.addSound(s,true);
                 soundboard.addSoundDialog.close();
-                soundboard.saveState();
+                //soundboard.saveState();
             }
         });
         document.getElementById('cancel-add-sound').addEventListener('click', () => {
@@ -961,8 +962,8 @@ class Soundboard {
         }
     }
 
-    addSound(sound) {
-        this.currentScene.addSound(sound);
+    addSound(sound,save=false) {
+        this.currentScene.addSound(sound,save);
     }
 
     playSound(sound) {
@@ -1155,6 +1156,7 @@ class Soundboard {
 
     async saveState() {
         console.log('Saving state...');
+        var soundCount = 0;
         for (const scene of this.scenes) {
             await window.electronAPI.saveScene({ id: scene.id, name: scene.name });
             for (const sound of scene.sounds) {
@@ -1179,6 +1181,8 @@ class Soundboard {
             const sounds = await window.electronAPI.getSounds();
             const queue = await window.electronAPI.getQueue();
 
+            console.log("Sounds loaded: "+sounds.length)
+
             scenes.forEach(sceneData => {
                 const scene = this.addScene(sceneData.name,false);
                 scene.id = sceneData.id;
@@ -1190,7 +1194,10 @@ class Soundboard {
                     const sound = new Sound(soundData.name, soundData.source, soundData.type);
                     sound.id = soundData.id;
                     sound.volume = soundData.volume;
-                    scene.addSound(sound);
+                    scene.addSound(sound,false);
+                }
+                else {
+                    console.log("Error: Failed to link sound to scene.");
                 }
             });
 
@@ -1443,7 +1450,7 @@ var soundboard;
 // When the app unloads, save stuff to the DB
 window.addEventListener('beforeunload', async (event) => {
     event.preventDefault();
-    await soundboard.saveState();
+    //await soundboard.saveState(); // This was causing problems, uncomment at your own risk I guess
 });
 
 window.onYouTubeIframeAPIReady = function() {
