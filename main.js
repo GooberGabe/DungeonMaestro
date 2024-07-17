@@ -43,7 +43,7 @@ function createWindow() {
   });
 
   // Uncomment to open DevTools by default
-   win.webContents.openDevTools();
+  // win.webContents.openDevTools();
 }
 
 // Database handler stuff
