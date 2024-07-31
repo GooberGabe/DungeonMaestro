@@ -604,6 +604,23 @@ body {
     opacity: 1;
 }
 
+.crossfade-container {
+    display: flex;
+    align-items: center;
+    margin-left: 5px;
+}
+
+.crossfade-container label {
+    display: flex;
+    align-items: center;
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+#crossfade-toggle {
+    margin-right: 5px;
+}
+
 .fade-container {
     display: none;
 }

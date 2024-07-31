@@ -33,10 +33,15 @@
                     <span>🔊</span>
                     <input type="range" id="volume-slider" min="0" max="100" value="100" title="Volume">
                 </div>
-                <div class="slider-container fade-container">
-                    <span>↔️</span>
-                    <input type="range" id="fade-slider" min="0" max="100" value="0" title="Cross-fade">
-            </div>
+                <div class="crossfade-container">
+                    <label for="crossfade-toggle">
+                        <input type="checkbox" id="crossfade-toggle">
+                        🔀
+                    </label>
+                    <div class="slider-container fade-container" style="display: none;">
+                        <input type="range" id="fade-slider" min="0" max="100" value="0">
+                    </div>
+                </div>
             <div id="resize-handle"></div>
         </div>
         <div id="menu" class="hidden">

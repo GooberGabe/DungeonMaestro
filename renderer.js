@@ -1,3 +1,13 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const ids = {};
+    document.querySelectorAll('[id]').forEach(el => {
+        if (ids[el.id]) {
+            console.warn(`Duplicate ID found: ${el.id}`);
+        }
+        ids[el.id] = true;
+    });
+});
+
 class Sound {
     constructor(name, source, type) {
         this.name = name;
@@ -196,7 +206,7 @@ class Sound {
 
     updateEffectiveVolume() {
         console.log("Effective volume set")
-        let m = this.type == "effect" ? 1 : this.fadeMultiplier;
+        let m = this.type == "effect" ? 1 : (soundboard.crossfadeEnabled ? this.fadeMultiplier : 1);
         const effectiveVolume = this.volume * soundboard.volume * m;
         if (this.isYouTube && this.youtubePlayer) {
             this.youtubePlayer.setVolume(effectiveVolume * 100);
@@ -744,6 +754,8 @@ class Soundboard {
         this.skipButton = document.getElementById('skip-button');
         this.volumeSlider = document.getElementById('volume-slider');
         this.fadeSlider = document.getElementById('fade-slider');
+        this.crossfadeToggle = document.getElementById('crossfade-toggle');
+        this.fadeContainer = document.querySelector('.fade-container');
         this.initSliders();
         this.volume = 1;
         this.fadeAmount = 0;
@@ -826,6 +838,7 @@ class Soundboard {
         document.getElementById('cancel-add-sound').addEventListener('click', () => {
             this.addSoundDialog.close();
         });
+        this.crossfadeToggle.addEventListener('change', (e) => this.toggleCrossfade(e.target.checked));
         
     }
 
@@ -835,13 +848,17 @@ class Soundboard {
             this.updateSliderTooltip(e.target, 'Volume');
         });
         this.fadeSlider.addEventListener('input', (e) => {
-            this.setFadeAmount(e.target.value / 100);
-            this.updateSliderTooltip(e.target, 'Cross-fade');
+            soundboard.fadeSliderInput(e.target);
         });
 
         // Initialize tooltips
         this.updateSliderTooltip(this.volumeSlider, 'Volume');
         this.updateSliderTooltip(this.fadeSlider, 'Cross-fade');
+    }
+
+    fadeSliderInput(target) {
+        this.setFadeAmount(target.value / 100);
+        this.updateSliderTooltip(target, 'Cross-fade');
     }
 
     updateSliderTooltip(slider, baseText) {
@@ -875,6 +892,18 @@ class Soundboard {
         this.resizeHandle.addEventListener('mousedown', startResize);
         document.addEventListener('mousemove', resize);
         document.addEventListener('mouseup', stopResize);
+    }
+
+    toggleCrossfade(enabled) {
+        this.crossfadeEnabled = enabled;
+        this.fadeContainer.style.display = enabled ? 'flex' : 'none';
+        if (!enabled) {
+            this.setFadeAmount(0);
+        }
+        else 
+        {
+            this.fadeSliderInput(this.fadeSlider)
+        }
     }
 
     addScene(name, save=true) {
@@ -1171,6 +1200,9 @@ class Soundboard {
             }
         }
         await window.electronAPI.saveQueue(this.musicQueue.map(sound => ({ id: sound.id })));
+        localStorage.setItem('crossfadeEnabled', this.crossfadeEnabled);
+        localStorage.setItem('fadeAmount', this.fadeAmount);
+
         console.log('State saved successfully');
     }
 
@@ -1204,6 +1236,14 @@ class Soundboard {
             this.musicQueue = queue.map(queueItem => {
                 return this.findSoundById(queueItem.sound_id);
             }).filter(sound => sound !== null);
+
+            const crossfadeEnabled = localStorage.getItem('crossfadeEnabled') === 'true';
+            const fadeAmount = parseFloat(localStorage.getItem('fadeAmount') || '0');
+            
+            this.crossfadeToggle.checked = crossfadeEnabled;
+            this.toggleCrossfade(crossfadeEnabled);
+            this.fadeSlider.value = fadeAmount * 100;
+            this.setFadeAmount(fadeAmount);
 
             console.log('State loaded successfully');
             //this.renderScenes();
