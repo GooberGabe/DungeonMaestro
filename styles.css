@@ -12,6 +12,11 @@
     --effect-color: #F1C40F;
 }
 
+#app, body, html {
+    height: 100%;
+    pointer-events: auto;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -664,7 +669,7 @@ dialog button[type="button"]:hover {
 }
 
 #resize-handle {
-    position: absolute;
+    position: fixed;
     right: 0;
     bottom: 0;
     width: 15px;
@@ -673,6 +678,7 @@ dialog button[type="button"]:hover {
     background: linear-gradient(135deg, transparent 50%, var(--accent-secondary) 50%);
     z-index: 1000;
 }
+
 
 @keyframes pulse {
     0% { opacity: 1; }

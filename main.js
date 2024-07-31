@@ -43,7 +43,11 @@ function createWindow() {
   });
 
   // Uncomment to open DevTools by default
-  // win.webContents.openDevTools();
+   win.webContents.openDevTools();
+
+   mainWindow.webContents.on('render-process-gone', (event, details) => {
+      console.error('Renderer process gone:', details);
+  });
 }
 
 // Database handler stuff
@@ -92,6 +96,11 @@ function setupIPCHandlers() {
   ipcMain.handle('delete-all-scenes', async () => {
     await db.deleteAllScenes();
     console.log('All scenes deleted from database');
+  });
+  ipcMain.on('resize-window', (event, size) => {
+    if (mainWindow) {
+        mainWindow.setSize(size.width, size.height);
+    }
   });
 
 }
