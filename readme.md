@@ -1,12 +1,8 @@
 <div align="center">
   <img src="assets/logo-min-gold.svg" alt="DungeonMaestro Logo" width="180"/>
-  <h1 style="font-family: 'Alegreya', serif; font-size: 3em; margin-bottom: 0;">DungeonMaestro</h1>
-  <p style="font-family: 'Alegreya Sans', sans-serif;">A Soundboard application for Dungeon Masters.</p>
+  <h1>DungeonMaestro</h1>
+  <p>A Soundboard application for Dungeon Masters.</p>
 </div>
-
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Alegreya:wght@700&family=Alegreya+Sans&display=swap');
-</style>
 
 ---
 
