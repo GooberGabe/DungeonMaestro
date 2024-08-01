@@ -1,57 +1,67 @@
-## Overview
+<div align="center">
+  <img src="assets/logo-min-gold.svg" alt="DungeonMaestro Logo" width="180"/>
+  <h1 style="font-family: 'Alegreya', serif; font-size: 3em; margin-bottom: 0;">DungeonMaestro</h1>
+  <p style="font-family: 'Alegreya Sans', sans-serif;">A Soundboard application for Dungeon Masters.</p>
+</div>
 
-**Project Title**: DungeonMaestro
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Alegreya:wght@700&family=Alegreya+Sans&display=swap');
+</style>
 
-**Project Description**: A Soundboard application for DM's.
+---
 
-**Project Goals**: 
-* Provide stable playback for mp3 files or youtube links
-* Organize scenes for easy access
-* Provide a responsive design layout that suits the needs of TTRPG players
+## 🎭 Features
 
-## Instructions for Build and Use
+DungeonMaestro empowers your tabletop RPG sessions with:
 
-Steps to build and/or run the software:
+- 🎵 Stable playback for both audio files and YouTube links
+- 🏞️ Organized scenes for easy access and management
+- 📱 Responsive design layout tailored for TTRPG players
 
-Run with NPM:
-1. Download the files.
-2. Open the directory.
-3. Run npm start
+## 🚀 Installation
 
-Run installer
-1. Download installer from releases
-2. Run installer
+1. Visit the [Releases](https://github.com/yourusername/DungeonMaestro/releases) page
+2. Download the latest version for your operating system
+3. Run the installer and follow the on-screen instructions
 
-Instructions for using the software:
+## 🎮 Usage
 
-1. To create your first scene, click on the top-right menu and click "Add Scene"
-2. You can then add sounds to your Scene by clicking "Add Sound" in the Scene dropdown. 
-3. Specify a file path OR valid Youtube URL
-4. Begin playing
+1. **Create a Scene**: Click on the top-right menu and select "Add Scene"
+2. **Add Sounds**: In the Scene dropdown, click "Add Sound"
+3. **Set Sound Source**: Specify a file path OR a valid YouTube URL
+4. **Start the Adventure**: Begin playing and immerse your players!
 
-## Development Environment 
+## 🛠️ Development Environment
 
-To recreate the development environment, you need the following software and/or libraries with the specified versions:
+To set up the development environment, you'll need:
 
-* Node
-* Latest version of Electron
-* Latest version of better-sqlite3
-* Latest version of Electron-builder
-* Latest version of Electron-updater
+- Node.js (v14.0.0 or later)
+- npm (v6.0.0 or later)
+- Electron (v13.0.0 or later)
+- SQLite3
 
-## Useful Websites to Learn More
+Clone the repository and install dependencies:
+```bash
+git clone https://github.com/yourusername/DungeonMaestro.git
+cd DungeonMaestro
+npm install
+```
 
-I found these websites useful in developing this software:
+## 🗺️ Roadmap
+Future enhancements planned for DungeonMaestro:
 
-* [Electron Docs](https://www.electronjs.org/docs/latest)
-* [Better-SQLite3](https://github.com/WiseLibs/better-sqlite3)
+- Spotify integration
+- File explorer interface for AddSound
+- Auto-update functionality
 
-## Future Work
+## 📜 License
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-The following items I plan to fix, improve, and/or add to this project in the future:
+## 🙏 Acknowledgements
+- Electron for making cross-platform desktop apps easy
+- SQLite for reliable local data storage
+- All the amazing Dungeon Masters who inspired this project!
 
-* [ ] Cross-fade
-* [ ] Spotify integration
-* [ ] Scrubbing bar
-* [ ] File explorer interface for AddSound
-* [ ] Auto-update
+<div align="center">
+  Made with ❤️ by Gabe Lytle
+</div>
