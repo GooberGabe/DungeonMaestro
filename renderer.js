@@ -747,6 +747,7 @@ class Soundboard {
         this.menuButton = document.getElementById('menu-button');
         this.menu = document.getElementById('menu');
         this.addSceneButton = document.getElementById('add-scene');
+        this.findSceneButton = document.getElementById('find-scene');
         this.quitButton = document.getElementById('quit-app');
         this.resizeHandle = document.getElementById('resize-handle');
         this.initResizeHandle();
@@ -762,6 +763,7 @@ class Soundboard {
         this.fadeMod = 25;
         this.addSceneDialog = document.getElementById('add-scene-dialog');
         this.addSoundDialog = document.getElementById('add-sound-dialog');
+        this.findSceneDialog = document.getElementById('find-scene-dialog');
         this.isGloballyPaused = false;
         
         this.visualQueue = new VisualQueue(this);
@@ -795,6 +797,10 @@ class Soundboard {
             this.showAddSceneDialog();
             this.toggleMenu();
         });
+        this.findSceneButton.addEventListener('click', () => {
+            this.showFindSceneDialog();
+            this.toggleMenu();
+        });
         this.quitButton.addEventListener('click', () => this.quit());
         this.pauseButton.addEventListener('click', () => this.toggleGlobalPause());
         this.skipButton.addEventListener('click', () => this.playNextInQueue());
@@ -817,8 +823,21 @@ class Soundboard {
                 this.addSceneDialog.close();
             }
         });
+        this.findSceneDialog.querySelector('form').addEventListener('submit', (e) => {
+            console.log('Submitted...');
+            e.preventDefault();
+            const sceneName = document.getElementById('find-scene-name').value;
+            if (sceneName) {
+                this.findScene(sceneName);
+                this.findSceneDialog.close();
+            }
+        });
+
         document.getElementById('cancel-add-scene').addEventListener('click', () => {
             this.addSceneDialog.close();
+        });
+        document.getElementById('cancel-find-scene').addEventListener('click', () => {
+            this.findSceneDialog.close();
         });
 
         // Add sound dialog events
@@ -906,6 +925,23 @@ class Soundboard {
         }
     }
 
+    findScene(name) 
+    {
+        this.scenes.forEach(scene => {
+            if (scene.name == name) {
+                scene.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setTimeout(() => {
+                    scene.element.classList.add('flash');
+    
+                    // Remove the flash class after the animation
+                    setTimeout(() => {
+                        scene.element.classList.remove('flash');
+                    }, 1000); // 2000ms = 2s, matching our 1s animation repeated twice
+                }, 500);
+            }
+        });
+    }
+
     addScene(name, save=true) {
         const scene = new Scene(name, soundboard);
         this.scenes.push(scene);
@@ -917,6 +953,11 @@ class Soundboard {
     showAddSceneDialog() {
         document.getElementById('scene-name').value = '';
         this.addSceneDialog.showModal();
+    }
+
+    showFindSceneDialog() {
+        document.getElementById('find-scene-name').value = '';
+        this.findSceneDialog.showModal();
     }
 
     showAddSoundDialog(scene) {
@@ -1498,6 +1539,13 @@ window.onYouTubeIframeAPIReady = function() {
     soundboard = new Soundboard();
     soundboard.loadState().catch(error => {
         console.error('Failed to load state:', error);
+    });
+    document.addEventListener('keydown', function(event) {
+        // Check if F is pressed
+        if (event.key === 'f') {
+            event.preventDefault(); // Prevent the default browser find action
+            soundboard.showFindSceneDialog();
+        }
     });
 
     // const scene1 = soundboard.addScene('Example');

@@ -47,8 +47,19 @@
         <div id="menu" class="hidden">
             <button id="add-scene">Add Scene</button>
             <button id="delete-scene">Delete Scene</button>
+            <button id="find-scene">Find Scene</button>
             <button id="quit-app">Quit</button>
         </div>
+
+    <!-- Dialog for finding a scene -->
+    <dialog id="find-scene-dialog">
+        <form method="dialog">
+            <label for="scene-name">Scene Name:</label>
+            <input type="text" id="find-scene-name" required>
+            <button type="submit">Find</button>
+            <button type="button" id="cancel-find-scene">Cancel</button>
+        </form>
+    </dialog>
 
     <!-- Dialog for adding a scene -->
     <dialog id="add-scene-dialog">

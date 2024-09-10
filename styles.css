@@ -32,7 +32,6 @@ body {
     height: 100vh;
 }
 
-
 #titlebar {
     display: flex;
     justify-content: space-between;
@@ -507,7 +506,7 @@ body {
 #bottom-bar {
     display: flex;
     align-items: center;
-    padding: 5px 10px; /* Reduced padding */
+    padding: 5px 5px; /* Reduced padding */
     background-color: var(--bg-secondary);
     border-top: 2px solid var(--accent-secondary);
 }
@@ -516,7 +515,7 @@ body {
     position: relative;
     display: flex;
     align-items: center;
-    margin-left: 10px;
+    margin-left: 2px;
 }
 
 .slider-container span {
@@ -808,4 +807,12 @@ dialog button[type="button"]:hover {
         align-items: center;
         padding: 0px;
     }
+}
+
+@keyframes flash {
+    50% { background-color: var(--music-color); }
+}
+
+.flash {
+    animation: flash 1s 2;
 }
