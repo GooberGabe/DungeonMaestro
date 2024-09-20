@@ -1,6 +1,6 @@
 {
   "name": "dungeonmaestro",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "A convenient soundboard application for DM's built using Electron.",
   "main": "main.js",
   "scripts": {

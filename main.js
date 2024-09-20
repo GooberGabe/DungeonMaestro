@@ -97,11 +97,13 @@ function setupIPCHandlers() {
     await db.deleteAllScenes();
     console.log('All scenes deleted from database');
   });
+
   ipcMain.on('resize-window', (event, size) => {
     if (mainWindow) {
         mainWindow.setSize(size.width, size.height);
     }
   });
+  
 
 }
 
@@ -131,6 +133,16 @@ autoUpdater.on('update-downloaded', () => {
 ipcMain.on('restart_app', () => {
   autoUpdater.quitAndInstall();
 });
+
+async function minimize() {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) {
+    win.minimize();
+  }
+}
+
+// This does not work. 
+ipcMain.on('minimize-app', minimize);
 
 // This will delete stuff from appdata but won't remove the executable
 async function uninstallApp() {

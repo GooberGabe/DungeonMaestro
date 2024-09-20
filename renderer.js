@@ -40,7 +40,7 @@ class Sound {
         return url.includes('youtube.com') || url.includes('youtu.be');
     }
 
-    initYouTubePlayer() {
+    async initYouTubePlayer() {
         const videoId = this.getYouTubeVideoId(this.source);
         if (!videoId) {
             console.error('Invalid YouTube URL');
@@ -66,7 +66,9 @@ class Sound {
             },
             events: {
                 'onReady': this.onYouTubePlayerReady.bind(this),
-                'onStateChange': this.onYouTubePlayerStateChange.bind(this)
+                'onStateChange': this.onYouTubePlayerStateChange.bind(this),
+                'onError': this.onYouTubePlayerError.bind(this),  // Add this line
+                'onPlaybackRateChange': this.onPlaybackRateChange.bind(this),
             }
         });
     }
@@ -89,6 +91,20 @@ class Sound {
             this.onEnded();
         }
     }
+
+    onYouTubePlayerError(event) {
+        console.error('YouTube player error:', event.data);
+        if (event.data == 150) {
+            console.error("The creator of this video has disabled content embedding.")
+            alert('The creator of this video has disabled content embedding.')
+            this.delete()
+        }
+    }
+
+    onPlaybackRateChange(event) {
+        // Fired when the video playback rate changes.
+        console.log('Playback rate changed to:', event.data);
+      }
 
     createSoundElement() {
         const soundEl = document.createElement('div');
@@ -180,21 +196,25 @@ class Sound {
             }
             
             dialog.close();
+            soundboard.allowHotkeys = true;
         });
 
         dialog.querySelector('#delete-sound').addEventListener('click', () => {
             if (confirm('Are you sure you want to delete this sound?')) {
                 this.delete();
                 dialog.close();
+                soundboard.allowHotkeys = true;
             }
         });
 
         dialog.querySelector('#cancel-button').addEventListener('click', () => {
             dialog.close();
+            soundboard.allowHotkeys = true;
         });
 
         document.body.appendChild(dialog);
         dialog.showModal();
+        soundboard.allowHotkeys = false;
     }
 
     setVolume(volume) {
@@ -222,11 +242,11 @@ class Sound {
         this.scene.sortSounds();
     }
 
-    updateSource(newSource) {
+    async updateSource(newSource) {
         this.source = newSource;
         this.isYouTube = this.isYouTubeLink(newSource);
         if (this.isYouTube) {
-            this.initYouTubePlayer();
+            await this.initYouTubePlayer();
         } else {
             this.audio = new Audio(newSource);
             this.audio.volume = this.volume;
@@ -478,6 +498,7 @@ class Sound {
             if (this.youtubePlayer && this.youtubePlayer.getCurrentTime) {
                 const currentTime = this.youtubePlayer.getCurrentTime();
                 const duration = this.youtubePlayer.getDuration();
+                console.log("SOUND: "+this.name+": "+currentTime+"/"+duration)
                 this.updateProgress(currentTime, duration);
             }
         }, 200);
@@ -742,10 +763,12 @@ class VisualQueue extends Scene {
 
 class Soundboard {
     constructor() {
+        this.allowHotkeys = true;
         this.scenes = [];
         this.scenesContainer = document.getElementById('scenes-container');
         this.menuButton = document.getElementById('menu-button');
         this.menu = document.getElementById('menu');
+        this.minimizeButton = document.getElementById('minimize');
         this.addSceneButton = document.getElementById('add-scene');
         this.findSceneButton = document.getElementById('find-scene');
         this.quitButton = document.getElementById('quit-app');
@@ -793,6 +816,10 @@ class Soundboard {
             event.stopPropagation();
             this.toggleMenu();
         });
+        this.minimizeButton.addEventListener('click', () => {
+            console.log("MIN0")
+            window.electronAPI.minimizeApp();
+        });
         this.addSceneButton.addEventListener('click', () => {
             this.showAddSceneDialog();
             this.toggleMenu();
@@ -821,6 +848,7 @@ class Soundboard {
             if (sceneName) {
                 this.addScene(sceneName);
                 this.addSceneDialog.close();
+                soundboard.allowHotkeys = true;
             }
         });
         this.findSceneDialog.querySelector('form').addEventListener('submit', (e) => {
@@ -830,14 +858,17 @@ class Soundboard {
             if (sceneName) {
                 this.findScene(sceneName);
                 this.findSceneDialog.close();
+                soundboard.allowHotkeys = true;
             }
         });
 
         document.getElementById('cancel-add-scene').addEventListener('click', () => {
             this.addSceneDialog.close();
+            soundboard.allowHotkeys = true;
         });
         document.getElementById('cancel-find-scene').addEventListener('click', () => {
             this.findSceneDialog.close();
+            soundboard.allowHotkeys = true;
         });
 
         // Add sound dialog events
@@ -851,11 +882,13 @@ class Soundboard {
                 var s = new Sound(name, source, type);
                 soundboard.addSound(s,true);
                 soundboard.addSoundDialog.close();
+                soundboard.allowHotkeys = true;
                 //soundboard.saveState();
             }
         });
         document.getElementById('cancel-add-sound').addEventListener('click', () => {
             this.addSoundDialog.close();
+            soundboard.allowHotkeys = true;
         });
         this.crossfadeToggle.addEventListener('change', (e) => this.toggleCrossfade(e.target.checked));
         
@@ -953,11 +986,13 @@ class Soundboard {
     showAddSceneDialog() {
         document.getElementById('scene-name').value = '';
         this.addSceneDialog.showModal();
+        soundboard.allowHotkeys = false;
     }
 
     showFindSceneDialog() {
         document.getElementById('find-scene-name').value = '';
         this.findSceneDialog.showModal();
+        soundboard.allowHotkeys = false;
     }
 
     showAddSoundDialog(scene) {
@@ -967,6 +1002,7 @@ class Soundboard {
         document.getElementById('sound-source-type').value = 'local';
         document.getElementById('sound-type').value = 'music';
         this.addSoundDialog.showModal();
+        soundboard.allowHotkeys = false;
     }
 
     initDeleteSceneButton() {
@@ -1542,8 +1578,8 @@ window.onYouTubeIframeAPIReady = function() {
     });
     document.addEventListener('keydown', function(event) {
         // Check if F is pressed
-        if (event.key === 'f') {
-            event.preventDefault(); // Prevent the default browser find action
+        if (event.key === 'f' && soundboard.allowHotkeys) {
+            event.preventDefault();
             soundboard.showFindSceneDialog();
         }
     });

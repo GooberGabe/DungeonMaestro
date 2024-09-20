@@ -21,5 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onUpdateDownloaded: (callback) => ipcRenderer.on('update_downloaded', callback),
     restartApp: () => ipcRenderer.send('restart_app'),
     uninstallApp: () => ipcRenderer.send('uninstall-app'),
-    resizeWindow: (size) => ipcRenderer.send('resize-window', size)
+    resizeWindow: (size) => ipcRenderer.send('resize-window', size),
+
+    minimizeApp: () => {console.log("MIN1"); ipcRenderer.send('minimize-app')}
 });
