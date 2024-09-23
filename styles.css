@@ -26,17 +26,42 @@ body {
     overflow: hidden;
 }
 
+#intro-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-primary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 1s ease-out, visibility 1s ease-out;
+}
+
+#intro-logo {
+    width: 150px;
+    height: 150px;
+}
+
+.fade-out {
+    opacity: 0;
+    visibility: hidden;
+}
+
 #app {
     display: flex;
     flex-direction: column;
     height: 100vh;
 }
 
+
 #titlebar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 5px 10px; /* Reduced padding */
+    padding: 5px 10px;
     background-color: var(--bg-secondary);
     -webkit-app-region: drag;
     border-bottom: 2px solid var(--accent-secondary);
@@ -73,7 +98,7 @@ body {
     padding: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     z-index: 1000;
-    min-width: 150px;
+    min-width: 120px;
     transition: color 0.3s ease;
 }
 
@@ -84,7 +109,7 @@ body {
     color: var(--text-primary);
     font-size: 16px; /* Slightly reduced font size */
     cursor: pointer;
-    padding: 3px 8px; /* Reduced padding */
+    padding: 2px 6px; /* Reduced padding */
     transition: color 0.3s ease;
 }
 
@@ -660,6 +685,23 @@ dialog input, dialog select {
     box-sizing: border-box; /* Include padding in width calculation */
 }
 
+#sound-source {
+    margin-top: 5px;
+    padding: 8px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#sound-source::-webkit-file-upload-button {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--text-secondary);
+    border-radius: 4px;
+    padding: 5px 10px;
+}
+
 dialog button {
     margin-top: 15px;
     padding: 8px 12px;
@@ -806,6 +848,17 @@ dialog button[type="button"]:hover {
         font-size: 12px;
         align-items: center;
         padding: 0px;
+    }
+
+    #menu button {
+        width: 100%;
+        padding: 4px 5px;
+        margin-bottom: 1px;
+        font-size: 13px;
+    }
+
+    #menu {
+        min-width: 100px;
     }
 }
 

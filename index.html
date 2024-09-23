@@ -14,7 +14,9 @@
         <!-- <script type="module" src="main.js"></script> -->
     </head>
     <body>
-        <!-- <script type="module" src="main.js"></script> -->
+        <div id="intro-panel">
+            <img src="assets/logo-min-gold.svg" alt="DungeonMaestro Logo" id="intro-logo">
+        </div>
         <div id="app">
             <div id="titlebar">
                 <div id="logo-container">
@@ -77,13 +79,14 @@
         <form method="dialog">
             <label for="sound-name">Soundscape Name:</label>
             <input type="text" id="sound-name" required>
-            <label for="sound-source">Sound Source:</label>
-            <input type="text" id="sound-source" required>
             <label for="sound-source-type">Source Type:</label>
             <select id="sound-source-type">
                 <option value="local">Local File</option>
                 <option value="youtube">YouTube URL</option>
             </select>
+            <label for="sound-source">Sound Source:</label>
+            <input type="text" id="sound-url" required>
+            <input type="file" id="sound-source" accept=".mp3" required>
             <label for="sound-type">Soundscape Type:</label>
             <select id="sound-type" required>
                 <option value="music">Music</option>
@@ -95,7 +98,7 @@
         </form>
     </dialog>
 
-    <!-- <script type="module" src="main.js"></script> -->
+    <script src="app.js"></script>
     <script type="module" src="renderer.js"></script>
 </body>
 </html>

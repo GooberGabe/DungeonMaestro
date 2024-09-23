@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, session } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const SoundboardDB = require('./database.js');
@@ -18,10 +18,10 @@ function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
   const win = new BrowserWindow({
-    width: 300,
-    height: 200,
-    x: width - 320,
-    y: height - 220,
+    width: 360,
+    height: 320,
+    x: (width / 2) - 180,
+    y: (height / 2) - 160,
     frame: false,
     transparent: true,
     alwaysOnTop: true,

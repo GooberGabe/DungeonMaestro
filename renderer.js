@@ -764,6 +764,7 @@ class VisualQueue extends Scene {
 class Soundboard {
     constructor() {
         this.allowHotkeys = true;
+        this.soundFilePath = "";
         this.scenes = [];
         this.scenesContainer = document.getElementById('scenes-container');
         this.menuButton = document.getElementById('menu-button');
@@ -811,13 +812,11 @@ class Soundboard {
     }
 
     initEventListeners() {
-        console.log('Adding click event listener to menu button');
         this.menuButton.addEventListener('click', (event) => {
             event.stopPropagation();
             this.toggleMenu();
         });
         this.minimizeButton.addEventListener('click', () => {
-            console.log("MIN0")
             window.electronAPI.minimizeApp();
         });
         this.addSceneButton.addEventListener('click', () => {
@@ -852,7 +851,6 @@ class Soundboard {
             }
         });
         this.findSceneDialog.querySelector('form').addEventListener('submit', (e) => {
-            console.log('Submitted...');
             e.preventDefault();
             const sceneName = document.getElementById('find-scene-name').value;
             if (sceneName) {
@@ -871,18 +869,53 @@ class Soundboard {
             soundboard.allowHotkeys = true;
         });
 
+        // Toggle hide on file explorer/URL input
+        const soundSourceType = document.getElementById('sound-source-type');
+        soundSourceType.addEventListener('change', (event) => {
+            console.log(event.target.value);
+            let yt = event.target.value == "youtube";
+            const source = document.getElementById('sound-source');
+            source.style.display = !yt ? 'block' : 'none';
+            source.required = !yt;
+
+            const url = document.getElementById('sound-url');
+            url.style.display = yt ? 'block' : 'none';
+            url.required = yt;
+        })
+
+        const soundSourceInput = document.getElementById('sound-source');
+        soundSourceInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                this.soundFilePath = file.path;
+                console.log('Selected file path:', this.soundFilePath);
+            }
+        });
+
         // Add sound dialog events
         this.addSoundDialog.querySelector('form').addEventListener('submit', (e) => {
+            console.log("ASSERT A")
             e.preventDefault();
-            const name = document.getElementById('sound-name').value;
-            const source = document.getElementById('sound-source').value;
-            const sourceType = document.getElementById('sound-source-type').value;
-            const type = document.getElementById('sound-type').value;
+            let name = document.getElementById('sound-name').value;
+            let source;
+            let sourceType = document.getElementById('sound-source-type').value;
+            
+            if (sourceType == "local") {
+                source = this.soundFilePath;
+                console.log("Local Selection");
+            }
+            else {
+                source = document.getElementById("sound-url").value
+                console.log("ERROR")
+            }
+            let type = document.getElementById('sound-type').value;
             if (name && source && (type === 'music' || type === 'ambient' || type === 'effect')) {
                 var s = new Sound(name, source, type);
                 soundboard.addSound(s,true);
+                console.log("ASSERT B")
                 soundboard.addSoundDialog.close();
                 soundboard.allowHotkeys = true;
+                this.soundFilePath = "";
                 //soundboard.saveState();
             }
         });
@@ -969,7 +1002,7 @@ class Soundboard {
                     // Remove the flash class after the animation
                     setTimeout(() => {
                         scene.element.classList.remove('flash');
-                    }, 1000); // 2000ms = 2s, matching our 1s animation repeated twice
+                    }, 1000); // 2000ms = 2s, matching the 1s animation repeated twice
                 }, 500);
             }
         });
@@ -998,6 +1031,9 @@ class Soundboard {
     showAddSoundDialog(scene) {
         this.currentScene = scene;
         document.getElementById('sound-name').value = '';
+        document.getElementById('sound-url').value = '';
+        document.getElementById('sound-url').style.display = 'none';
+        document.getElementById('sound-url').required = false;
         document.getElementById('sound-source').value = '';
         document.getElementById('sound-source-type').value = 'local';
         document.getElementById('sound-type').value = 'music';
