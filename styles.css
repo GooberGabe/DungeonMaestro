@@ -287,6 +287,7 @@ body {
     height: 36px;
     transition: background-color 0.3s ease;
     position: relative;
+    cursor: move;
 }
 
 .sound:hover {
@@ -297,6 +298,11 @@ body {
     width: 4px;
     height: 16px;
     flex-shrink: 0;
+}
+
+.sound-type-icon {
+    display: none;
+    pointer-events: none;
 }
 
 .sound-options {
@@ -382,7 +388,6 @@ body {
     */
     padding-right: 5px;
     padding-left: 0px;
-    cursor: move;
     transition: border-color 0.3s ease;
 }
 
@@ -469,6 +474,7 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    user-select: none;
 }
 
 .sound-controls {
@@ -495,6 +501,7 @@ body {
     justify-content: center;
     align-items: center;
     transition: background-color 0.3s ease, color 0.3s ease;
+    user-select: none;
 }
 
 .sound-button:hover {
@@ -730,13 +737,12 @@ dialog button[type="button"]:hover {
     position: fixed;
     right: 0;
     bottom: 0;
-    width: 15px;
-    height: 15px;
+    width: 18px;
+    height: 18px;
     cursor: nwse-resize;
     background: linear-gradient(135deg, transparent 50%, var(--accent-secondary) 50%);
     z-index: 1000;
 }
-
 
 @keyframes pulse {
     0% { opacity: 1; }
@@ -777,8 +783,8 @@ dialog button[type="button"]:hover {
         position: absolute;
         top: 0;
         left: 0;
-        width: 15px;
-        height: 15px;
+        width: 23px;
+        height: 22px;
         margin-right: 0;
         border-radius: 0 0 15px 0;
     }
@@ -786,7 +792,6 @@ dialog button[type="button"]:hover {
     .sound-name {
         text-align: center;
         padding: 6px 0;
-        
     }
 
     .sound-controls {
@@ -801,6 +806,15 @@ dialog button[type="button"]:hover {
         font-size: 16px;
         margin: 0 4px;
     }
+    .sound-type-icon {
+        display:block;
+        width: 13px;
+        height: 13px;
+        margin-left: 4px;
+        margin-top: 4px;
+        user-select: none;
+    }
+
     .progress-bar {
         display: block;
     }
@@ -812,12 +826,12 @@ dialog button[type="button"]:hover {
         margin-bottom: 0;
     }
 
-    .queued-sound.drag-over-top {
+    .drag-over-top {
         border-top: none;
         border-left: 2px solid white;
     }
 
-    .queued-sound.drag-over-bottom {
+    .drag-over-bottom {
         border-bottom: none;
         border-right: 2px solid white;
     }

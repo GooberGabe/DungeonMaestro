@@ -110,8 +110,11 @@ class Sound {
         const soundEl = document.createElement('div');
         soundEl.className = `sound ${this.type} ${this.isYouTube ? 'youtube' : 'local'}`;
         soundEl.dataset.soundId = this.id;
+        soundEl.draggable = true;
         soundEl.innerHTML = `
-            <div class="sound-type-indicator"></div>
+            <div class="sound-type-indicator">
+                <img src="assets/${this.type}.svg" alt="Indicator" class="sound-type-icon">
+            </div>
             <div class="sound-content">
                 <div class="sound-name">${this.name}</div>
                 <div class="progress-bar-container">
@@ -565,6 +568,7 @@ class QueuedSound {
         const soundEl = document.createElement('div');
         soundEl.className = `sound queued ${this.originalSound.type}`;
         soundEl.dataset.soundId = this.originalSound.id;
+        soundEl.draggable = true;
         soundEl.innerHTML = `
             <div class="sound-type-indicator"></div>
             <div class="sound-content">
@@ -591,6 +595,15 @@ class Scene {
         this.contentElement = this.element.querySelector('.scene-content');
         this.renderSounds();
         this.isOpen = true;
+        this.initDragAndDrop();
+    }
+
+    initDragAndDrop() {
+        this.contentElement.addEventListener('dragstart', this.handleSoundDragStart.bind(this));
+        this.contentElement.addEventListener('dragover', this.handleSoundDragOver.bind(this));
+        this.contentElement.addEventListener('dragleave', this.handleSoundDragLeave.bind(this));
+        this.contentElement.addEventListener('drop', this.handleSoundDrop.bind(this));
+        this.contentElement.addEventListener('dragend', this.handleSoundDragEnd.bind(this));
     }
 
     createSceneElement() {
@@ -661,6 +674,7 @@ class Scene {
     }
 
     sortSounds() {
+        /*
         const typeOrder = { 'effect': 0, 'ambient': 1, 'music': 2 };
         this.sounds.sort((a, b) => {
             let diff = typeOrder[a.type] - typeOrder[b.type];
@@ -669,7 +683,7 @@ class Scene {
             if (a.name > b.name) return 1; 
             return 0;
         });
-        
+        */
         this.renderSounds();
     }
 
@@ -692,6 +706,106 @@ class Scene {
         soundboard.updatePlayingState();
     }
 
+    handleSoundDragStart(e) {
+        soundboard.draggedElement = e.target;
+        if (e.target.classList.contains('sound')) {
+            //e.dataTransfer.setData('text/plain', e.target.dataset.soundId);
+            e.target.style.opacity = '0.5';
+            console.log(e.target);
+        }
+    }
+    
+    handleSoundDragOver(e) {
+        e.preventDefault();
+        if (soundboard.draggedElement) {
+            const targetElement = e.target.closest('.sound');
+            if (targetElement && targetElement !== soundboard.draggedElement) {
+                const rect = targetElement.getBoundingClientRect();
+                const isGridLayout = window.innerWidth >= 300 && window.innerHeight >= 200; // Check if we're in grid layout
+    
+                if (isGridLayout) {
+                    const midX = rect.left + rect.width / 2;
+                    if (e.clientX < midX) {
+                        targetElement.classList.add('drag-over-top');
+                        targetElement.classList.remove('drag-over-bottom');
+                    } else {
+                        targetElement.classList.add('drag-over-bottom');
+                        targetElement.classList.remove('drag-over-top');
+                    }
+                } else {
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        targetElement.classList.add('drag-over-top');
+                        targetElement.classList.remove('drag-over-bottom');
+                    } else {
+                        targetElement.classList.add('drag-over-bottom');
+                        targetElement.classList.remove('drag-over-top');
+                    }
+                }
+            }
+        }
+    }
+    
+    handleSoundDragLeave(e) {
+        if (e.target.classList.contains('sound')) {
+            e.target.style.borderTop = '';
+            e.target.style.borderBottom = '';
+        }
+    }
+    
+    handleSoundDrop(e) {
+        e.preventDefault();
+        
+        if (soundboard.draggedElement) {
+            console.log(e.target)
+            const targetElement = e.target.closest('.sound');
+            
+            if (targetElement && targetElement !== soundboard.draggedElement) {
+                const rect = targetElement.getBoundingClientRect();
+                const isGridLayout = window.innerWidth >= 300 && window.innerHeight >= 200;
+                
+                if (isGridLayout) {
+                    const midX = rect.left + rect.width / 2;
+                    
+                    if (e.clientX < midX) {
+                        this.contentElement.insertBefore(soundboard.draggedElement, targetElement);
+                    } else {
+                        this.contentElement.insertBefore(soundboard.draggedElement, targetElement.nextSibling);
+                    }
+                } else {
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        this.contentElement.insertBefore(soundboard.draggedElement, targetElement);
+                    } else {
+                        this.contentElement.insertBefore(soundboard.draggedElement, targetElement.nextSibling);
+                    } 
+                }
+                this.updateOrder();
+                //this.renderSounds();
+                //this.updateQueueOrder();
+                //this.updateQueueNumbers();
+            }
+        }
+    }
+    
+    handleSoundDragEnd(e) {
+        if (soundboard.draggedElement) {
+            
+            soundboard.draggedElement.style.opacity = '1';
+            soundboard.draggedElement = null;
+            
+            this.contentElement.querySelectorAll('.sound').forEach(el => {
+                el.classList.remove('drag-over-top', 'drag-over-bottom');
+            });
+            
+        }
+    }
+
+    updateOrder() {
+        const newOrder = Array.from(this.contentElement.querySelectorAll('.sound')).map(el => el.dataset.soundId);
+        this.sounds = newOrder.map(id => soundboard.findSoundById(id));
+        soundboard.saveState();
+    }
     
 }
 
@@ -702,6 +816,10 @@ class VisualQueue extends Scene {
         this.element.classList.add('visual-queue');
         
         //this.initDragAndDrop();
+    }
+
+    initDragAndDrop() {
+
     }
 
     renderSounds() {
@@ -717,9 +835,10 @@ class VisualQueue extends Scene {
         console.log("Added sound to Queue.")
         const queuedSound = new QueuedSound(sound);
         super.addSound(queuedSound);
-        this.initSoundDragAndDrop(queuedSound.element);
+        //this.initSoundDragAndDrop(queuedSound.element);
     }
 
+    /*
     initSoundDragAndDrop(soundElement) {
         soundElement.setAttribute('draggable', true);
         soundElement.addEventListener('dragstart', () => {
@@ -729,6 +848,7 @@ class VisualQueue extends Scene {
             soundElement.classList.remove('dragging');
         });
     }
+    */
 
     getDragAfterElement(container, y) {
         const draggableElements = [...container.querySelectorAll('.sound:not(.dragging)')];
@@ -1613,11 +1733,18 @@ window.onYouTubeIframeAPIReady = function() {
         console.error('Failed to load state:', error);
     });
     document.addEventListener('keydown', function(event) {
-        // Check if F is pressed
-        if (event.key === 'f' && soundboard.allowHotkeys) {
-            event.preventDefault();
-            soundboard.showFindSceneDialog();
+        // Hotkeys
+        if (soundboard.allowHotkeys) {
+            if (event.key === 'f') {
+                event.preventDefault();
+                soundboard.showFindSceneDialog();
+            }
+            if (event.key === 'm') {
+                event.preventDefault();
+                window.electronAPI.minimizeApp();
+            }
         }
+        
     });
 
     // const scene1 = soundboard.addScene('Example');
