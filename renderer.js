@@ -536,9 +536,11 @@ class Sound {
     }
 
     addToQueue() {
-        console.log("Set queued to true.")
-        this.queued = true;
-        soundboard.addToMusicQueue(this);
+        if (this.type === 'music') {
+            console.log("Set queued to true.")
+            this.queued = true;
+            soundboard.addToMusicQueue(this);
+        }
     }
 
     removeFromQueue() {
@@ -613,7 +615,12 @@ class Scene {
         sceneEl.innerHTML = `
             <div class="scene-header" draggable="true">
                 <span>${this.name}</span>
-                <button class="toggle-scene">▼</button>
+                <div>
+                    <button class="multiqueue-button">
+                        <img src="assets/multiqueue.svg" alt="multiqueue" class="multiqueue-icon">
+                    </button>
+                    <button class="toggle-scene">▼</button>
+                </div>
             </div>
             <div class="scene-content"></div>
         `;
@@ -632,7 +639,8 @@ class Scene {
         });
 
         sceneEl.querySelector('.toggle-scene').addEventListener('click', () => this.toggleContent());
-        //sceneEl.querySelector('.add-sound-button').addEventListener('click', () => soundboard.showAddSoundDialog(this));
+        sceneEl.querySelector('.multiqueue-button').addEventListener('click', () => this.multiQueue());
+        sceneEl.querySelector('.multiqueue-button').title = "Queue all music in Scene"
 
         return sceneEl;
     }
@@ -697,6 +705,12 @@ class Scene {
         const toggleButton = this.element.querySelector('.toggle-scene');
         toggleButton.textContent = this.isOpen ? '▼' : '▶';
         this.updatePlayingState();
+    }
+
+    multiQueue() {
+        this.sounds.forEach(sound => {
+            sound.addToQueue();
+        })
     }
 
     updatePlayingState() {
@@ -812,7 +826,6 @@ class Scene {
 class VisualQueue extends Scene {
     constructor(soundboard) {
         super("Queue",soundboard);
-        //this.contentElement.querySelector('.add-sound-button').remove();
         this.element.classList.add('visual-queue');
         
         //this.initDragAndDrop();
@@ -828,6 +841,7 @@ class VisualQueue extends Scene {
 
     createSceneElement() {
         const sceneEl = super.createSceneElement();
+        sceneEl.querySelector(".multiqueue-button").style.display = "none"; // temporary until I add mass dequeue
         return sceneEl;
     }
 

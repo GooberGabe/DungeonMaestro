@@ -239,6 +239,34 @@ body {
     border-top: 2px solid var(--accent-color);
 }
 
+.multiqueue-icon {
+    display:block;
+    width: 16px;
+    height: 16px;
+    margin: 0px;
+    user-select: none;
+}
+
+.multiqueue-button {
+    opacity: 0%;
+    background: none;
+    border: 1px solid;
+    border-radius: 2px;
+    color: var(--text-primary);
+    padding: 1px;
+    margin: 0px;
+    transition: color 0.3s ease;
+    transition: opacity 0.3s ease;
+}
+
+.multiqueue-button:hover {
+    color: var(--accent-secondary);
+}
+
+.scene-header:hover .multiqueue-button {
+    opacity: 100%;
+}
+
 .progress-bar-container {
     position: relative;
     height: 6px;
