@@ -516,11 +516,10 @@ class Sound {
 
     toggleQueue() {
         console.log("Toggled queue status")
-        this.queued = !this.queued;
         if (this.queued) {
-            soundboard.addToMusicQueue(this);
-        } else {
             soundboard.removeFromMusicQueue(this);
+        } else {
+            soundboard.addToMusicQueue(this);
         }
 
         /* Dequeue from Sound element
@@ -593,6 +592,7 @@ class Scene {
         this.name = name;
         this.sounds = [];
         this.element = this.createSceneElement();
+        
         _soundboard.scenesContainer.appendChild(this.element);
         this.contentElement = this.element.querySelector('.scene-content');
         this.renderSounds();
@@ -823,6 +823,7 @@ class Scene {
     
 }
 
+/* --- TODO: Transfer method control to VisualQueue from Soundboard */
 class VisualQueue extends Scene {
     constructor(soundboard) {
         super("Queue",soundboard);
@@ -839,17 +840,62 @@ class VisualQueue extends Scene {
 
     }
 
+    
     createSceneElement() {
-        const sceneEl = super.createSceneElement();
-        sceneEl.querySelector(".multiqueue-button").style.display = "none"; // temporary until I add mass dequeue
+        const sceneEl = document.createElement('div');
+        sceneEl.className = 'scene';
+        sceneEl.dataset.sceneId = this.id;
+        sceneEl.innerHTML = `
+            <div class="scene-header" draggable="true">
+                <span>${this.name}</span>
+                <div>
+                    <button class="multiqueue-button">
+                        <img src="assets/dequeue.svg" alt="multiqueue" class="multiqueue-icon">
+                    </button>
+                    <button class="toggle-scene">▼</button>
+                </div>
+            </div>
+            <div class="scene-content"></div>
+        `;
+
+        
+        //<div class="scene-content">
+        //    <button class="add-sound-button">+ Add Soundscape</button>
+        //</div>
+            
+
+        sceneEl.addEventListener('click', (e) => {
+            if (soundboard.deleteMode) {
+                e.stopPropagation();
+                soundboard.deleteScene(this);
+            }
+        });
+
+        sceneEl.querySelector('.toggle-scene').addEventListener('click', () => this.toggleContent());
+        sceneEl.querySelector('.multiqueue-button').addEventListener('click', () => soundboard.dequeueAll());
+        sceneEl.querySelector('.multiqueue-button').title = "Remove all music from queue";
+
         return sceneEl;
+    }
+    
+
+    dequeueAll() {
+        /*
+        console.log("Dequeue all (Visual Queue)")
+        soundboard.musicQueue.forEach(sound => {
+            //this.removeSound(sound);
+            this.removeSound(sound);
+        });
+        */
     }
 
     addSound(sound,save=false) {
-        console.log("Added sound to Queue.")
+        /*
+        console.log("Added sound to Queue (VisualQueue).")
         const queuedSound = new QueuedSound(sound);
         super.addSound(queuedSound);
         //this.initSoundDragAndDrop(queuedSound.element);
+        */
     }
 
     /*
@@ -884,14 +930,17 @@ class VisualQueue extends Scene {
         this.updateQueueNumbers();
     }
 
+    // Sound: the original Sound object, not the QueuedSound object.
     removeSound(sound) {
-        console.log("Removed sound from queue.");
+        /*
+        console.log("Removed sound from queue (VisualQueue).");
         const index = this.sounds.findIndex(s => s.originalSound === sound);
         if (index !== -1) {
             this.sounds.splice(index, 1);
             this.contentElement.removeChild(this.sounds[index].element);
             soundboard.removeFromMusicQueue(sound);
         }
+        */
     }
 }
 
@@ -1342,8 +1391,10 @@ class Soundboard {
 
     addToMusicQueue(sound) {
         console.log("Added Sound to queue (SOUNDBOARD)")
+        sound.queued = true;
         if (!this.musicQueue.includes(sound)) {
             this.musicQueue.push(sound);
+            this.saveQueue();
             this.updateVisualQueue();
         }
     }
@@ -1351,17 +1402,33 @@ class Soundboard {
     removeFromMusicQueue(sound) {
         console.log("Removed Sound from queue (SOUNDBOARD)")
         const index = this.musicQueue.indexOf(sound);
+        this._removeFromMusicQueueIndex(index);
+        
+    }
+
+    _removeFromMusicQueueIndex(index) {
+        const sound = this.musicQueue[index];
+        sound.queued = false;
         if (index > -1) {
             this.musicQueue.splice(index, 1);
-            sound.queued = false;
             const queueButton = sound.element.querySelector('.queue');
             if (queueButton) {
                 queueButton.textContent = '+';
                 queueButton.title = 'Add to Queue';
             }
+            this.saveQueue();
             this.updateVisualQueue();
         }
+        
     }
+
+    dequeueAll() {
+        console.log(this.musicQueue.length)
+        while (this.musicQueue.length > 0) {
+            this._removeFromMusicQueueIndex(0);
+        }
+    }
+        
 
     updateVisualQueue() {
         console.log("Updating queue.")
@@ -1430,6 +1497,10 @@ class Soundboard {
         console.log('All scenes deleted');
     }
 
+    async saveQueue() {
+        await window.electronAPI.saveQueue(this.musicQueue.map(sound => ({ id: sound.id })));
+    }
+
     async saveState() {
         console.log('Saving state...');
         var soundCount = 0;
@@ -1446,7 +1517,7 @@ class Soundboard {
                 });
             }
         }
-        await window.electronAPI.saveQueue(this.musicQueue.map(sound => ({ id: sound.id })));
+        await saveQueue();
         localStorage.setItem('crossfadeEnabled', this.crossfadeEnabled);
         localStorage.setItem('fadeAmount', this.fadeAmount);
 
@@ -1483,6 +1554,10 @@ class Soundboard {
             this.musicQueue = queue.map(queueItem => {
                 return this.findSoundById(queueItem.sound_id);
             }).filter(sound => sound !== null);
+
+            this.musicQueue.forEach(sound => {
+                sound.queued = true;
+            });
 
             const crossfadeEnabled = localStorage.getItem('crossfadeEnabled') === 'true';
             const fadeAmount = parseFloat(localStorage.getItem('fadeAmount') || '0');
