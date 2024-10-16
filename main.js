@@ -1,7 +1,10 @@
 const { app, BrowserWindow, ipcMain, screen, session } = require('electron');
 const path = require('path');
-const { autoUpdater } = require('electron-updater');
+const { autoUpdater, AppUpdater } = require('electron-updater');
 const SoundboardDB = require('./database.js');
+
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
 
 if (process.env.NODE_ENV === 'production') {
   // In production, use the bundled version
@@ -9,7 +12,6 @@ if (process.env.NODE_ENV === 'production') {
 }
 else 
 {
-
 
 let mainWindow;
 let db;
@@ -41,7 +43,7 @@ function createWindow() {
 
   win.webContents.on('did-finish-load', () => {
     if (process.env.NODE_ENV !== 'development') {
-      autoUpdater.checkForUpdatesAndNotify();
+      //autoUpdater.checkForUpdatesAndNotify();
     }
   });
 
@@ -120,6 +122,8 @@ app.whenReady().then(async () => {
   app.on('activate', function () {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+
+  autoUpdater.checkForUpdates();
 });
 
 app.on('window-all-closed', function () {
@@ -134,6 +138,7 @@ autoUpdater.on('checking-for-update', () => {
 autoUpdater.on('update-available', (info) => {
   console.log('Update available:', info);
   mainWindow.webContents.send('update_available');
+  autoUpdater.downloadUpdate();
 });
 
 autoUpdater.on('update-not-available', (info) => {

@@ -1,6 +1,6 @@
 {
   "name": "dungeonmaestro",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A convenient soundboard application for DM's built using Electron.",
   "main": "main.js",
   "scripts": {
@@ -11,6 +11,11 @@
   },
   "author": "Gabe Lytle",
   "license": "ISC",
+  "repository": "https://github.com/GooberGabe/DungeonMaestro",
+  "publish": {
+    "provider": "github",
+    "releaseType": "release"
+  },
   "build": {
     "appId": "https://github.com/GooberGabe/DungeonMaestro",
     "productName": "DungeonMaestro",
