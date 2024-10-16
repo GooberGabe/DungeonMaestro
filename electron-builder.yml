@@ -1,0 +1,5 @@
+appId: "https://github.com/GooberGabe/DungeonMaestro"
+publish:
+  provider: "github"
+  owner: "GooberGabe"
+  repo: "DungeonMaestro"

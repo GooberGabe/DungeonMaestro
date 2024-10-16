@@ -955,6 +955,7 @@ class Soundboard {
         this.minimizeButton = document.getElementById('minimize');
         this.addSceneButton = document.getElementById('add-scene');
         this.findSceneButton = document.getElementById('find-scene');
+        this.aboutButton = document.getElementById('about');
         this.quitButton = document.getElementById('quit-app');
         this.resizeHandle = document.getElementById('resize-handle');
         this.initResizeHandle();
@@ -971,6 +972,7 @@ class Soundboard {
         this.addSceneDialog = document.getElementById('add-scene-dialog');
         this.addSoundDialog = document.getElementById('add-sound-dialog');
         this.findSceneDialog = document.getElementById('find-scene-dialog');
+        this.aboutDialog = document.getElementById('about-dialog');
         this.isGloballyPaused = false;
         
         this.visualQueue = new VisualQueue(this);
@@ -1008,6 +1010,10 @@ class Soundboard {
         });
         this.findSceneButton.addEventListener('click', () => {
             this.showFindSceneDialog();
+            this.toggleMenu();
+        });
+        this.aboutButton.addEventListener('click', () => {
+            this.showAboutDialog();
             this.toggleMenu();
         });
         this.quitButton.addEventListener('click', () => this.quit());
@@ -1104,6 +1110,10 @@ class Soundboard {
         });
         document.getElementById('cancel-add-sound').addEventListener('click', () => {
             this.addSoundDialog.close();
+            soundboard.allowHotkeys = true;
+        });
+        document.getElementById('close-about').addEventListener('click', () => {
+            this.aboutDialog.close();
             soundboard.allowHotkeys = true;
         });
         this.crossfadeToggle.addEventListener('change', (e) => this.toggleCrossfade(e.target.checked));
@@ -1222,6 +1232,10 @@ class Soundboard {
         document.getElementById('sound-type').value = 'music';
         this.addSoundDialog.showModal();
         soundboard.allowHotkeys = false;
+    }
+
+    showAboutDialog() {
+        this.aboutDialog.showModal();
     }
 
     initDeleteSceneButton() {
@@ -1402,7 +1416,7 @@ class Soundboard {
     removeFromMusicQueue(sound) {
         console.log("Removed Sound from queue (SOUNDBOARD)")
         const index = this.musicQueue.indexOf(sound);
-        this._removeFromMusicQueueIndex(index);
+        if (index > -1) this._removeFromMusicQueueIndex(index);
         
     }
 
@@ -1517,7 +1531,7 @@ class Soundboard {
                 });
             }
         }
-        await saveQueue();
+        await this.saveQueue();
         localStorage.setItem('crossfadeEnabled', this.crossfadeEnabled);
         localStorage.setItem('fadeAmount', this.fadeAmount);
 
