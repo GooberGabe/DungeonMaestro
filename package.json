@@ -1,6 +1,6 @@
 {
   "name": "dungeonmaestro",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "A convenient soundboard application for DM's built using Electron.",
   "main": "main.js",
   "scripts": {
@@ -11,18 +11,16 @@
   },
   "author": "Gabe Lytle",
   "license": "ISC",
-  "repository": "https://github.com/GooberGabe/DungeonMaestro",
-  "publish": {
-    "provider": "github",
-    "releaseType": "release"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GooberGabe/DungeonMaestro.git"
   },
   "build": {
-    "appId": "https://github.com/GooberGabe/DungeonMaestro",
+    "appId": "com.goobergabe.dungeonmaestro",
     "productName": "DungeonMaestro",
     "icon": "assets/logo.ico",
     "compression": "maximum",
     "asar": true,
-    "electronDist": "node_modules/electron/dist",
     "publish": {
       "provider": "github",
       "owner": "GooberGabe",
@@ -30,23 +28,14 @@
     },
     "files": [
       "**/*",
-      "assets/*",
-      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
       "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
       "!**/node_modules/*.d.ts",
       "!**/node_modules/.bin",
-      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
-      "!.editorconfig",
-      "!**/._*",
-      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
-      "!**/{appveyor.yml,.travis.yml,circle.yml}",
-      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS}",
+      "!**/{__pycache__,thumbs.db,.idea,.vs}"
     ],
     "win": {
-      "target": [
-        "nsis"
-      ],
+      "target": ["nsis"],
       "icon": "assets/logo.ico"
     },
     "nsis": {

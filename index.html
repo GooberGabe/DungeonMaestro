@@ -70,10 +70,19 @@
         </form>
     </dialog>
 
-    <!-- Dialog for adding a sound -->
+    <!-- Dialog for adding an existing sound -->
+    <dialog id="sound-asset-dialog">
+        <h2>Select Sound Asset</h2>
+        <div id="sound-asset-list">
+            <!-- Sound asset cards are dynamically inserted here -->
+        </div>
+        <button id="close-asset-dialog">Close</button>
+    </dialog>
+
+    <!-- Dialog for adding a new sound -->
     <dialog id="add-sound-dialog">
         <form method="dialog">
-            <label for="sound-name">Soundscape Name:</label>
+            <label for="sound-name">Asset Name:</label>
             <input type="text" id="sound-name" required>
             <label for="sound-source-type">Source Type:</label>
             <select id="sound-source-type">
@@ -83,7 +92,7 @@
             <label for="sound-source">Sound Source:</label>
             <input type="text" id="sound-url" required>
             <input type="file" id="sound-source" accept=".mp3" required>
-            <label for="sound-type">Soundscape Type:</label>
+            <label for="sound-type">Asset Type:</label>
             <select id="sound-type" required>
                 <option value="music">Music</option>
                 <option value="ambient">Ambient</option>
@@ -98,9 +107,16 @@
     <dialog id="about-dialog">
         <h2>About DungeonMaestro</h2>
         <p>DungeonMaestro is an easy-to-use tool for managing and playing custom audio for tabletop role-playing games.</p>
-        <p>Version: 0.2.3</p>
+        <p>Version: 0.3.0</p>
         <p>Created by Gabe Lytle</p>
         <button id="close-about">Close</button>
+    </dialog>
+
+    <!-- Dialog for asset/custom selection -->
+    <dialog id="asset-custom-dialog">
+        <h2>Add Sound from...</h2>
+        <button id="add-custom" type="button">New Sound Asset</button>
+        <button id="add-asset" type="button">Existing Sound Asset</button>
     </dialog>
 
     <script src="app.js"></script>

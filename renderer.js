@@ -8,40 +8,102 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-class Sound {
-    constructor(name, source, type) {
-        this.name = name;
-        this.source = source;
-        this.type = type; // 'music', 'ambient', or 'effect'
-        this.isYouTube = this.isYouTubeLink(source);
-        this.element = this.createSoundElement();
-        this.isPlaying = false;
-        this.wasPaused = false;
-        this.scene = null;
-        this.queued = false;
-        this.id = `sound-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        this.volume = 1; // Individual sound volume
-        this.fadeMultiplier = 1;
-        this.duration = 0;
-        this.currentTime = 0;
+/***************************************************************************************
+ * SOUNDASSET
+ * 
+ * Contains & manages data for url, soundType, sourceType, and tags.
+ * References a HTML Div element with this.element
+ * 
+ * NOTE: Refactoring in progress.
+ ***************************************************************************************/
 
-        if (this.isYouTube) {
-            this.initYouTubePlayer();
-        } else {
-            this.audio = new Audio(source);
-            this.audio.addEventListener('ended', () => this.onEnded());
-            if (this.type === 'ambient') {
-                this.audio.loop = true;
-            }
-        }
+class SoundAsset {
+    constructor(name, source, type) {
+        this.element = this.createAssetElement();       // Reference to corresponding div in DOM (HTMLDivElement)
+
+        this.name = name;                               // Display name of the audio asset (string)
+        this.title = '';                                // For YT audio; the name of the video associated with this asset (string) 
+        this.source = source;                           // URL or file location (string)
+        this.type = type;                               // Playback type (string: 'music', 'ambient', or 'effect')
+        this.isYouTube = this.isYouTubeLink(source);    // Is this Youtube content or locally-stored audio? (bool)
+        this.tags = [];                                 // List of relevant tags (list<string>)
+        this.id = `asset-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`; // Unique identifier (string)
+    }
+
+    createAssetElement() {
+        return null;
     }
 
     isYouTubeLink(url) {
         return url.includes('youtube.com') || url.includes('youtu.be');
     }
 
+    delete() {
+        const index = soundboard.soundAssets.indexOf(sound);
+        soundboard.soundAssets.splice(index, 1);
+    }
+
+    /**** DO NOT USE ****/
+    async updateSource(newSource) {
+        this.source = newSource;
+        this.isYouTube = this.isYouTubeLink(newSource);
+        // TODO: Loop through all sounds, update sounds that have this Asset
+        /*
+        if (this.isYouTube) {
+            await this.initYouTubePlayer();
+        } else {
+            this.audio = new Audio(newSource);
+            this.audio.volume = this.volume;
+            if (this.type === 'ambient') {
+                this.audio.loop = true;
+            }
+        }
+        soundboard.updateSoundSource(this);
+        */
+    }
+}
+
+/***************************************************************************************
+ * SOUNDSCAPE
+ * 
+ * Contains & manages data for playback, local volume, queue, scene membership.
+ * References a SoundAsset object, which contains data for all duplicate sounds.
+ * References a HTML Div element with this.element
+ * References a Scene, which contains the element.
+ * 
+ * NOTE: Refactoring in progress.
+ ***************************************************************************************/
+
+class Soundscape {
+    constructor(asset) {
+        this.asset = asset;                             // Reference to corresponding SoundAsset (SoundAsset)
+        this.element = this.createSoundElement();       // Reference to corresponding div in DOM (HTMLDivElement)
+        this.scene = null;                              // Reference to corresponding Scene (Scene)
+
+        this.name = asset.name;                         // By default, our name is equal to the Asset's name (string)
+        this.isPlaying = false;                         // Is this Soundscape currently playing audio? (bool)
+        this.wasPaused = false;                         // Was playback paused (not stopped)? (bool)
+        this.queued = false;                            // Are we in the queue? (bool)
+        this.id = `sound-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`; // Unique identifier (string)
+        this.volume = 1;                                // Individual sound volume (float, 0...1)
+        this.fadeMultiplier = 1;                        // How much crossfade is applied at this moment (float, 0...1)
+        this.duration = 0;                              // Length of the audio (float)
+        this.currentTime = 0;                           // How far into the playback are we? (float)
+
+        // Initialize audio playback depending on Asset type.
+        if (this.asset.isYouTube) {
+            this.initYouTubePlayer();
+        } else {
+            this.audio = new Audio(asset.source);
+            this.audio.addEventListener('ended', () => this.onEnded());
+            if (this.asset.type === 'ambient') {
+                this.audio.loop = true;
+            }
+        }
+    }
+
     async initYouTubePlayer() {
-        const videoId = this.getYouTubeVideoId(this.source);
+        const videoId = this.getYouTubeVideoId(this.asset.source);
         if (!videoId) {
             console.error('Invalid YouTube URL');
             return;
@@ -81,7 +143,13 @@ class Sound {
 
     onYouTubePlayerReady(event) {
         console.log(`YouTube player ready for ${this.name}`);
-        if (this.type === 'ambient') {
+        
+        // Set asset title after the player is ready, but only if it hasn't been set already. 
+        if (this.asset.title == '') {
+            this.asset.title = event.target.getVideoData().title;
+        }
+
+        if (this.asset.type === 'ambient') {
             event.target.setLoop(true);
         }
     }
@@ -95,9 +163,10 @@ class Sound {
     onYouTubePlayerError(event) {
         console.error('YouTube player error:', event.data);
         if (event.data == 150) {
-            console.error("The creator of this video has disabled content embedding.")
-            alert('The creator of this video has disabled content embedding.')
-            this.delete()
+            console.error("The creator of this video has disabled content embedding.");
+            alert('The creator of this video has disabled content embedding.');
+            this.asset.delete();
+            this.delete();
         }
     }
 
@@ -108,12 +177,12 @@ class Sound {
 
     createSoundElement() {
         const soundEl = document.createElement('div');
-        soundEl.className = `sound ${this.type} ${this.isYouTube ? 'youtube' : 'local'}`;
+        soundEl.className = `sound ${this.asset.type} ${this.asset.isYouTube ? 'youtube' : 'local'}`;
         soundEl.dataset.soundId = this.id;
         soundEl.draggable = true;
         soundEl.innerHTML = `
             <div class="sound-type-indicator">
-                <img src="assets/${this.type}.svg" alt="Indicator" class="sound-type-icon">
+                <img src="assets/${this.asset.type}.svg" alt="Indicator" class="sound-type-icon">
             </div>
             <div class="sound-content">
                 <div class="sound-name">${this.name}</div>
@@ -127,7 +196,7 @@ class Sound {
             <div class="sound-controls">
                 <button class="sound-button play" title="Play">▶</button>
                 <button class="sound-button stop" title="Stop">■</button>
-                ${this.type === 'music' ? '<button class="sound-button queue" title="Queue">+</button>' : ''}
+                ${this.asset.type === 'music' ? '<button class="sound-button queue" title="Queue">+</button>' : ''}
             </div>
             <button class="sound-options" title="Options">⚙️</button>
         `;
@@ -136,7 +205,7 @@ class Sound {
         soundEl.querySelector('.play').addEventListener('click', () => soundboard.playSound(this));
         soundEl.querySelector('.stop').addEventListener('click', () => this.softStop());
         soundEl.querySelector('.sound-options').addEventListener('click', () => this.showOptionsDialog());
-        if (this.type === 'music') {
+        if (this.asset.type === 'music') {
             soundEl.querySelector('.queue').addEventListener('click', () => {console.log("EVENT: addToQueue (Sound)"); this.addToQueue()});
         }
 
@@ -159,7 +228,8 @@ class Sound {
         dialog.className = 'sound-options-dialog';
         dialog.innerHTML = `
             <form method="dialog">
-                <h3>Options for "${this.name}" (${this.type.charAt(0).toUpperCase() + this.type.slice(1)})</h3>
+                <h3>Options for "${this.name}" (${this.asset.type.charAt(0).toUpperCase() + this.asset.type.slice(1)})</h3>
+                <p>${this.asset.title}</p>
                 <label>
                     Rename:
                     <input type="text" id="sound-name-input" value="${this.name}">
@@ -168,35 +238,41 @@ class Sound {
                     Volume:
                     <input type="range" min="0" max="1" step="0.01" value="${this.volume}" id="volume-slider">
                 </label>
-                <label>
-                    Source:
-                    <input type="text" value="${this.source}" id="source-input">
-                </label>
                 <div class="dialog-buttons">
                     <button type="submit">Save</button>
-                    <button type="button" id="delete-sound">Delete Sound</button>
                     <button type="button" id="cancel-button">Cancel</button>
+                    <button type="button" id="delete-sound">Delete Sound</button>
                 </div>
             </form>
         `;
 
+        /* TODO: Move this field into a dialog in SOUNDASSET 
+        <label>
+            Source:
+            <input type="text" value="${this.asset.source}" id="source-input">
+        </label>
+        */
+
         const nameInput = dialog.querySelector('#sound-name-input');
         const volumeSlider = dialog.querySelector('#volume-slider');
-        const sourceInput = dialog.querySelector('#source-input');
+        //const sourceInput = dialog.querySelector('#source-input');
 
         dialog.querySelector('form').addEventListener('submit', (e) => {
             e.preventDefault();
             const newName = nameInput.value.trim();
             const newVolume = parseFloat(volumeSlider.value);
-            const newSource = sourceInput.value.trim();
+            //const newSource = sourceInput.value.trim();
 
             if (newName && newName !== this.name) {
                 this.rename(newName);
             }
             this.setVolume(newVolume);
-            if (newSource && newSource !== this.source) {
+
+            /* TODO: Move this into SOUNDASSET
+            if (newSource && newSource !== this.asset.source) {
                 this.updateSource(newSource);
             }
+            */
             
             dialog.close();
             soundboard.allowHotkeys = true;
@@ -229,9 +305,9 @@ class Sound {
 
     updateEffectiveVolume() {
         console.log("Effective volume set")
-        let m = this.type == "effect" ? 1 : (soundboard.crossfadeEnabled ? this.fadeMultiplier : 1);
+        let m = this.asset.type == "effect" ? 1 : (soundboard.crossfadeEnabled ? this.fadeMultiplier : 1);
         const effectiveVolume = this.volume * soundboard.volume * m;
-        if (this.isYouTube && this.youtubePlayer) {
+        if (this.asset.isYouTube && this.youtubePlayer) {
             this.youtubePlayer.setVolume(effectiveVolume * 100);
         } else if (this.audio) {
             this.audio.volume = effectiveVolume;
@@ -242,22 +318,7 @@ class Sound {
         this.name = newName;
         this.element.querySelector('.sound-name').textContent = newName;
         soundboard.updateSoundName(this);
-        this.scene.sortSounds();
-    }
-
-    async updateSource(newSource) {
-        this.source = newSource;
-        this.isYouTube = this.isYouTubeLink(newSource);
-        if (this.isYouTube) {
-            await this.initYouTubePlayer();
-        } else {
-            this.audio = new Audio(newSource);
-            this.audio.volume = this.volume;
-            if (this.type === 'ambient') {
-                this.audio.loop = true;
-            }
-        }
-        soundboard.updateSoundSource(this);
+        //this.scene.sortSounds(); We don't do alphabetical sorting anymore
     }
 
     delete() {
@@ -271,7 +332,7 @@ class Sound {
         this.element.classList.add('playing');
         this.progressBar.style.cursor = 'pointer';
 
-        if (this.isYouTube) {
+        if (this.asset.isYouTube) {
             if (this.youtubePlayer && this.youtubePlayer.playVideo) {
                 this.youtubePlayer.playVideo();
                 this.startYouTubeProgressUpdate();
@@ -289,7 +350,7 @@ class Sound {
     }
 
     togglePause() {
-        if (this.isYouTube) {
+        if (this.asset.isYouTube) {
             if (this.youtubePlayer.getPlayerState() === YT.PlayerState.PLAYING) {
                 this.youtubePlayer.pauseVideo();
                 this.isPlaying = false;
@@ -346,7 +407,7 @@ class Sound {
         this.element.classList.remove('playing');
         this.progressBar.style.cursor = 'default';
 
-        if (this.isYouTube) {
+        if (this.asset.isYouTube) {
             if (this.youtubePlayer && this.youtubePlayer.stopVideo) {
                 this.youtubePlayer.stopVideo();
             }
@@ -398,7 +459,7 @@ class Sound {
     scrub(scrubTime) {
         if (!this.isPlaying) return;
         
-        if (this.isYouTube) {
+        if (this.asset.isYouTube) {
             if (this.youtubePlayer && this.youtubePlayer.seekTo) {
                 this.youtubePlayer.seekTo(scrubTime, true);
             }
@@ -441,7 +502,7 @@ class Sound {
             let threshold = numIncrements * .2; // make sure everything is in seconds
             //console.log("fm:"+this.fadeMultiplier+", rt:"+remainingTime+", thresh:"+threshold);
             
-            if (this.fadeMultiplier == 1 && remainingTime <= threshold && this.type === "music") {
+            if (this.fadeMultiplier == 1 && remainingTime <= threshold && this.asset.type === "music") {
                 soundboard.playNextInQueue();
                 this.startFadeOut();
             }
@@ -535,7 +596,7 @@ class Sound {
     }
 
     addToQueue() {
-        if (this.type === 'music') {
+        if (this.asset.type === 'music') {
             console.log("Set queued to true.")
             this.queued = true;
             soundboard.addToMusicQueue(this);
@@ -550,7 +611,7 @@ class Sound {
 
     onEnded() {
         this.stop();
-        if (this.type === 'ambient') 
+        if (this.asset.type === 'ambient') 
         {
             this.play();
         }
@@ -659,7 +720,7 @@ class Scene {
         const addSoundButton = document.createElement('button');
         addSoundButton.className = 'add-sound-button';
         addSoundButton.textContent = '+ Add Soundscape';
-        addSoundButton.addEventListener('click', () => soundboard.showAddSoundDialog(this));
+        addSoundButton.addEventListener('click', () => soundboard.showAssetOrCustomDialog(this));
         contentEl.appendChild(addSoundButton);
     }
 
@@ -949,6 +1010,7 @@ class Soundboard {
         this.allowHotkeys = true;
         this.soundFilePath = "";
         this.scenes = [];
+        this.soundAssets = [];
         this.scenesContainer = document.getElementById('scenes-container');
         this.menuButton = document.getElementById('menu-button');
         this.menu = document.getElementById('menu');
@@ -973,6 +1035,8 @@ class Soundboard {
         this.addSoundDialog = document.getElementById('add-sound-dialog');
         this.findSceneDialog = document.getElementById('find-scene-dialog');
         this.aboutDialog = document.getElementById('about-dialog');
+        this.assetCustomDialog = document.getElementById('asset-custom-dialog');
+        this.addExistingAssetDialog = document.getElementById('sound-asset-dialog');
         this.isGloballyPaused = false;
         
         this.visualQueue = new VisualQueue(this);
@@ -1099,8 +1163,9 @@ class Soundboard {
             }
             let type = document.getElementById('sound-type').value;
             if (name && source && (type === 'music' || type === 'ambient' || type === 'effect')) {
-                var s = new Sound(name, source, type);
-                soundboard.addSound(s,true);
+                var asset = new SoundAsset(name, source, type);
+                soundboard.soundAssets.push(asset);
+                soundboard.addSound(asset,true);
                 console.log("ASSERT B")
                 soundboard.addSoundDialog.close();
                 soundboard.allowHotkeys = true;
@@ -1116,6 +1181,19 @@ class Soundboard {
             this.aboutDialog.close();
             soundboard.allowHotkeys = true;
         });
+        document.getElementById('add-custom').addEventListener('click', () => {
+            this.assetCustomDialog.close();
+            this.showAddSoundDialog();
+        });
+        document.getElementById('add-asset').addEventListener('click', () => {
+            this.assetCustomDialog.close();
+            this.showAddExistingAssetDialog();
+        });
+        document.getElementById('close-asset-dialog').addEventListener('click', () => {
+            this.addExistingAssetDialog.close();
+            soundboard.allowHotkeys = true;
+        });
+
         this.crossfadeToggle.addEventListener('change', (e) => this.toggleCrossfade(e.target.checked));
         
     }
@@ -1209,6 +1287,12 @@ class Soundboard {
         return scene;
     }
 
+    /***********
+     * DIALOGS
+    ************/
+
+    //#region 
+
     showAddSceneDialog() {
         document.getElementById('scene-name').value = '';
         this.addSceneDialog.showModal();
@@ -1221,8 +1305,49 @@ class Soundboard {
         soundboard.allowHotkeys = false;
     }
 
-    showAddSoundDialog(scene) {
+    showAssetOrCustomDialog(scene) {
         this.currentScene = scene;
+        this.assetCustomDialog.showModal();
+        soundboard.allowHotkeys = false;
+    }
+
+    showAddExistingAssetDialog() {
+        this.populateAssetList();
+        this.addExistingAssetDialog.showModal();
+        soundboard.allowHotkeys = false;
+    }
+
+    populateAssetList() {
+        const assetList = document.getElementById('sound-asset-list');
+        assetList.innerHTML = '';
+        soundboard.soundAssets.forEach(asset => {
+            const card = this.createAssetCard(asset);
+            assetList.appendChild(card);
+        });
+    }
+
+    createAssetCard(asset) {
+        const card = document.createElement('div');
+        const title = asset.isYouTube && asset.title != '' ? ' ('+asset.title+')' : '';
+        card.className = 'sound-asset-card';
+        card.innerHTML = `
+            <div class="sound-asset-name">${asset.name}</div>
+            <div class="sound-asset-info">
+                
+                ${asset.isYouTube ? `<span class="youtube-indicator">${title}</span>` : 'Local'}
+                
+                <img class="sound-type-icon" src="assets/${asset.type}.svg" alt="${asset.type}">
+            </div>
+        `;
+        card.onclick = () => {
+            this.addExistingAssetDialog.close();
+            soundboard.allowHotkeys = true; 
+            soundboard.addSound(asset);
+        };
+        return card;
+    }
+
+    showAddSoundDialog() {
         document.getElementById('sound-name').value = '';
         document.getElementById('sound-url').value = '';
         document.getElementById('sound-url').style.display = 'none';
@@ -1237,6 +1362,8 @@ class Soundboard {
     showAboutDialog() {
         this.aboutDialog.showModal();
     }
+
+    //#endregion
 
     initDeleteSceneButton() {
         const deleteSceneButton = document.getElementById('delete-scene');
@@ -1294,19 +1421,20 @@ class Soundboard {
 
     async updateSoundSource(sound) {
         try {
-            await window.electronAPI.updateSoundSource(sound.id, sound.source);
+            await window.electronAPI.updateSoundSource(sound.id, sound.asset.source);
             console.log('Sound source updated successfully');
         } catch (error) {
             console.error('Failed to update sound source:', error);
         }
     }
 
-    addSound(sound,save=false) {
+    addSound(asset,save=false) {
+        const sound = new Soundscape(asset);
         this.currentScene.addSound(sound,save);
     }
 
     playSound(sound) {
-        if (sound.type === 'music') {
+        if (sound.asset.type === 'music') {
             this.stopAllMusic();
             this.currentlyPlayingMusic = sound;
             this.removeFromMusicQueue(sound);
@@ -1372,7 +1500,7 @@ class Soundboard {
     stopAllMusic() {
         this.scenes.forEach(scene => {
             scene.sounds.forEach(sound => {
-                if (sound.type === 'music' && sound.isPlaying) {
+                if (sound.asset.type === 'music' && sound.isPlaying) {
                     console.log("softstop");
                     sound.softStop();
                 }
@@ -1476,7 +1604,7 @@ class Soundboard {
         queuedSoundEl.dataset.queueIndex = index;
         queuedSoundEl.draggable = true;
         queuedSoundEl.innerHTML = `
-            <div class="sound-type-indicator ${sound.type}"></div>
+            <div class="sound-type-indicator ${sound.asset.type}"></div>
             <div class="sound-name">${sound.name}</div>
             <button class="remove-from-queue" title="Remove from Queue">✕</button>
         `;
@@ -1517,17 +1645,25 @@ class Soundboard {
 
     async saveState() {
         console.log('Saving state...');
-        var soundCount = 0;
+        
+        for (const asset of this.soundAssets) {
+            await window.electronAPI.saveAsset({
+                id: asset.id,
+                source: asset.source,
+                type: asset.type,
+                name: asset.name,
+                title: asset.title,
+            });
+        }
         for (const scene of this.scenes) {
             await window.electronAPI.saveScene({ id: scene.id, name: scene.name });
             for (const sound of scene.sounds) {
                 await window.electronAPI.saveSound({
                     id: sound.id,
                     scene_id: scene.id,
+                    asset_id: sound.asset.id,
+                    volume: sound.volume,
                     name: sound.name,
-                    source: sound.source,
-                    type: sound.type,
-                    volume: sound.volume
                 });
             }
         }
@@ -1542,6 +1678,7 @@ class Soundboard {
         try {
             console.log('Loading state...');
             const scenes = await window.electronAPI.getScenes();
+            const assets = await window.electronAPI.getAssets();
             const sounds = await window.electronAPI.getSounds();
             const queue = await window.electronAPI.getQueue();
 
@@ -1551,17 +1688,33 @@ class Soundboard {
                 const scene = this.addScene(sceneData.name,false);
                 scene.id = sceneData.id;
             })
+            
+            assets.forEach(assetData => {
+                const asset = new SoundAsset(assetData.name, assetData.source, assetData.type);
+                asset.id = assetData.id;
+                asset.title = assetData.title;
+                soundboard.soundAssets.push(asset);
+            })
 
             sounds.forEach(soundData => {
                 const scene = this.scenes.find(s => s.id === soundData.scene_id);
-                if (scene) {
-                    const sound = new Sound(soundData.name, soundData.source, soundData.type);
-                    sound.id = soundData.id;
-                    sound.volume = soundData.volume;
-                    scene.addSound(sound,false);
+                const asset = this.soundAssets.find(a => a.id === soundData.asset_id);
+
+                if (asset) {
+                    if (scene) {
+                        console.log(`Asset loaded: ${asset.id}`)
+                        const sound = new Soundscape(asset);
+                        sound.id = soundData.id;
+                        sound.volume = soundData.volume;
+                        sound.name = soundData.name;
+                        scene.addSound(sound,false);
+                    }
+                    else {
+                        console.log("Error: Failed to link sound to scene.");
+                    }
                 }
                 else {
-                    console.log("Error: Failed to link sound to scene.");
+                    console.log("Error: Failed to link sound to asset.")
                 }
             });
 
@@ -1849,13 +2002,6 @@ window.onYouTubeIframeAPIReady = function() {
         }
         
     });
-
-    // const scene1 = soundboard.addScene('Example');
-    //var s = new Sound('Music', 'https://www.youtube.com/watch?v=oCjPrsrSTPA&list=RDoCjPrsrSTPA&index=1', 'music')
-    //scene1.addSound(s);
-
-    //var s2 = new Sound('Doorbell', 'assets/sounds/sound1.mp3', 'music')
-    //scene1.addSound(s2);
 
     soundboard.updatePlayingState();
 };

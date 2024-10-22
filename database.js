@@ -20,14 +20,22 @@ class SoundboardDB {
                 name TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS assets (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                title TEXT NOT NULL,
+                source TEXT NOT NULL,
+                type TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS sounds (
                 id TEXT PRIMARY KEY,
                 scene_id TEXT,
+                asset_id TEXT,
                 name TEXT NOT NULL,
-                source TEXT NOT NULL,
-                type TEXT NOT NULL,
                 volume REAL NOT NULL,
                 FOREIGN KEY (scene_id) REFERENCES scenes(id) ON DELETE CASCADE
+                FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
             );
 
             CREATE TABLE IF NOT EXISTS queue (
@@ -58,8 +66,14 @@ class SoundboardDB {
 
     saveSound(sound) {
         console.log("++ Saved sound id "+sound.id);
-        const stmt = this.db.prepare('INSERT OR REPLACE INTO sounds (id, scene_id, name, source, type, volume) VALUES (?, ?, ?, ?, ?, ?)');
-        stmt.run(sound.id, sound.scene_id, sound.name, sound.source, sound.type, sound.volume);
+        const stmt = this.db.prepare('INSERT OR REPLACE INTO sounds (id, scene_id, asset_id, name, volume) VALUES (?, ?, ?, ?, ?)');
+        stmt.run(sound.id, sound.scene_id, sound.asset_id, sound.name, sound.volume);
+    }
+
+    saveAsset(asset) {
+        console.log("++ Saved asset id "+asset.id);
+        const stmt = this.db.prepare('INSERT OR REPLACE INTO assets (id, name, title, source, type) VALUES (?, ?, ?, ?, ?)');
+        stmt.run(asset.id, asset.name, asset.title, asset.source, asset.type);
     }
 
     saveQueue(queue) {
@@ -82,6 +96,10 @@ class SoundboardDB {
 
     getSounds() {
         return this.db.prepare('SELECT * FROM sounds').all();
+    }
+
+    getAssets() {
+        return this.db.prepare('SELECT * FROM assets').all();
     }
 
     getQueue() {

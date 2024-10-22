@@ -377,29 +377,6 @@ body {
     opacity: 1;
 }
 
-.dialog-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-}
-
-.dialog-buttons button {
-    padding: 5px 10px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.dialog-buttons button[type="submit"] {
-    background-color: var(--accent-secondary);
-    color: var(--text-primary);
-}
-
-.dialog-buttons button#delete-sound {
-    background-color: #e74c3c;
-    color: var(--text-primary);
-}
-
 .scene-content p {
     margin: 0;
 }
@@ -689,7 +666,7 @@ dialog {
     color: var(--text-primary);
     border: 1px solid var(--accent-secondary);
     border-radius: 6px;
-    padding: 20px;
+    padding: 8px;
     max-width: 90%; /* Use percentage for responsiveness */
     width: 400px; /* Default width */
     box-sizing: border-box; /* Include padding in width calculation */
@@ -738,7 +715,7 @@ dialog input, dialog select {
 }
 
 dialog button {
-    margin-top: 15px;
+    margin: 15px 5px 1px;
     padding: 8px 12px;
     background-color: var(--accent-secondary);
     border: none;
@@ -759,6 +736,129 @@ dialog button[type="button"] {
 
 dialog button[type="button"]:hover {
     background-color: var(--accent-secondary);
+}
+
+#sound-asset-dialog {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--accent-secondary);
+    border-radius: 6px;
+    width: 500px;
+    height: 600px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+#sound-asset-dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#sound-asset-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+    overflow-y: auto;
+    flex-grow: 1;
+    padding-right: 10px;
+}
+
+/* Scrollbar styles */
+#sound-asset-list::-webkit-scrollbar {
+    width: 9px;
+}
+
+#sound-asset-list::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+#sound-asset-list::-webkit-scrollbar-thumb {
+    background-color: var(--accent-secondary);
+    border-radius: 4px;
+}
+
+.sound-asset-card {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--text-secondary);
+    border-radius: 4px;
+    margin-top: 3px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    max-height: 40px;
+}
+
+.sound-asset-card:hover {
+    border-color: var(--accent-secondary);
+    transform: translateY(-1px);
+}
+
+.sound-asset-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sound-asset-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8em;
+}
+
+.sound-type-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.youtube-indicator {
+    color: var(--accent-secondary);
+    overflow: hidden;
+    white-space: nowrap;
+    font-weight: bold;
+    text-overflow: ellipsis;
+}
+
+#close-dialog {
+    background-color: var(--accent-secondary);
+    border: none;
+    border-radius: 4px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 8px 16px;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+}
+
+#close-dialog:hover {
+    background-color: var(--accent-primary);
+}
+
+.dialog-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.dialog-buttons button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.dialog-buttons button[type="submit"] {
+    background-color: var(--accent-secondary);
+    color: var(--text-primary);
+}
+
+.dialog-buttons button#delete-sound {
+    background-color: #e74c3c;
+    color: var(--text-primary);
 }
 
 #resize-handle {

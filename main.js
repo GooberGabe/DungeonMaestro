@@ -5,6 +5,7 @@ const SoundboardDB = require('./database.js');
 
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.forceDevUpdateConfig = true;
 
 if (process.env.NODE_ENV === 'production') {
   // In production, use the bundled version
@@ -48,7 +49,7 @@ function createWindow() {
   });
 
   // Uncomment to open DevTools by default
-  // win.webContents.openDevTools();
+   win.webContents.openDevTools();
 
   /* 
    mainWindow.webContents.on('render-process-gone', (event, details) => {
@@ -67,8 +68,10 @@ async function initializeDatabase() {
 function setupIPCHandlers() {
   ipcMain.handle('save-scene', async (event, scene) => await db.saveScene(scene));
   ipcMain.handle('save-sound', async (event, sound) => await db.saveSound(sound));
+  ipcMain.handle('save-asset', async (event, asset) => await db.saveAsset(asset));
   ipcMain.handle('save-queue', async (event, queue) => await db.saveQueue(queue));
   ipcMain.handle('get-scenes', async () => await db.getScenes());
+  ipcMain.handle('get-assets', async () => await db.getAssets());
   ipcMain.handle('get-sounds', async () => await db.getSounds());
   ipcMain.handle('get-queue', async () => await db.getQueue());
   ipcMain.handle('update-scene-order', async (event, sceneIds) => {
@@ -139,14 +142,17 @@ autoUpdater.on('update-available', (info) => {
   console.log('Update available:', info);
   mainWindow.webContents.send('update_available');
   autoUpdater.downloadUpdate();
+  confirm('UPDATE_AVAILABLE')
 });
 
 autoUpdater.on('update-not-available', (info) => {
   console.log('Update not available:', info);
+  confirm('UPDATE_NOT_AVAILABLE')
 });
 
 autoUpdater.on('error', (err) => {
   console.error('Error in auto-updater:', err);
+  confirm('UPDATE_ERROR')
 });
 
 autoUpdater.on('download-progress', (progressObj) => {

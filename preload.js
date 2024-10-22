@@ -3,9 +3,11 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
     saveScene: (scene) => ipcRenderer.invoke('save-scene', scene),
     saveSound: (sound) => ipcRenderer.invoke('save-sound', sound),
+    saveAsset: (asset) => ipcRenderer.invoke('save-asset', asset),
     saveQueue: (queue) => ipcRenderer.invoke('save-queue', queue),
     getScenes: () => ipcRenderer.invoke('get-scenes'),
     getSounds: () => ipcRenderer.invoke('get-sounds'),
+    getAssets: () => ipcRenderer.invoke('get-assets'),
     getQueue: () => ipcRenderer.invoke('get-queue'),
     
     updateSceneOrder: (sceneIds) => ipcRenderer.invoke('update-scene-order', sceneIds),
