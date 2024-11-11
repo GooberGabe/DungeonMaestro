@@ -255,6 +255,8 @@ body {
     color: var(--text-primary);
     padding: 1px;
     margin: 0px;
+    margin-top: 5px;
+    cursor: pointer;
     transition: color 0.3s ease;
     transition: opacity 0.3s ease;
 }
@@ -522,7 +524,7 @@ body {
     animation: pulse 2s infinite;
 }
 
-.add-sound-button {
+.add-sound-button, .add-scene-button {
     background: none;
     border: 2px dashed rgba(255, 255, 255, 0.2);
     color: var(--text-secondary);
@@ -535,7 +537,7 @@ body {
     transition: all 0.3s ease;
 }
 
-.add-sound-button:hover {
+.add-sound-button:hover, .add-scene-button:hover {
     border-color: var(--accent-secondary);
     color: var(--accent-secondary);
 }

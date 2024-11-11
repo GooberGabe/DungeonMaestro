@@ -39,7 +39,7 @@ class SoundAsset {
     }
 
     delete() {
-        const index = soundboard.soundAssets.indexOf(sound);
+        const index = soundboard.soundAssets.indexOf(this);
         soundboard.soundAssets.splice(index, 1);
     }
 
@@ -165,8 +165,9 @@ class Soundscape {
         if (event.data == 150) {
             console.error("The creator of this video has disabled content embedding.");
             alert('The creator of this video has disabled content embedding.');
-            this.asset.delete();
             this.delete();
+            this.asset.delete();
+            
         }
     }
 
@@ -205,6 +206,7 @@ class Soundscape {
         soundEl.querySelector('.play').addEventListener('click', () => soundboard.playSound(this));
         soundEl.querySelector('.stop').addEventListener('click', () => this.softStop());
         soundEl.querySelector('.sound-options').addEventListener('click', () => this.showOptionsDialog());
+
         if (this.asset.type === 'music') {
             soundEl.querySelector('.queue').addEventListener('click', () => {console.log("EVENT: addToQueue (Sound)"); this.addToQueue()});
         }
@@ -490,6 +492,7 @@ class Soundscape {
     updateProgress(currentTime, duration) {
         this.currentTime = currentTime;
         this.duration = duration;
+        let remainingTime = duration - currentTime;
         if (this.progress) {
             const progress = (currentTime / duration) * 100;
             this.progress.style.width = `${progress}%`;
@@ -498,7 +501,6 @@ class Soundscape {
         // How many increments will it take to bring the fade multiplier to 0? 
         if (soundboard.fadeAmount > 0 && duration > 0) {
             let numIncrements = 1 / this.getFadeIncrement();
-            let remainingTime = duration - currentTime;
             let threshold = numIncrements * .2; // make sure everything is in seconds
             //console.log("fm:"+this.fadeMultiplier+", rt:"+remainingTime+", thresh:"+threshold);
             
@@ -615,6 +617,11 @@ class Soundscape {
         {
             this.play();
         }
+        if (this.asset.type === 'music')
+        {
+            soundboard.playNextInQueue();
+            
+        }
         
     }
 }
@@ -659,6 +666,7 @@ class Scene {
         this.renderSounds();
         this.isOpen = true;
         this.initDragAndDrop();
+        _soundboard.scenesContainer.appendChild(_soundboard.scenesContainer.querySelector(".add-scene-button"));
     }
 
     initDragAndDrop() {
@@ -782,6 +790,7 @@ class Scene {
     }
 
     handleSoundDragStart(e) {
+        console.log("SOUND DRAG START");
         soundboard.draggedElement = e.target;
         if (e.target.classList.contains('sound')) {
             //e.dataTransfer.setData('text/plain', e.target.dataset.soundId);
@@ -791,8 +800,9 @@ class Scene {
     }
     
     handleSoundDragOver(e) {
+        console.log("SOUND DRAG OVER START");
         e.preventDefault();
-        if (soundboard.draggedElement) {
+        if (soundboard.draggedElement.classList.contains('sound')) {
             const targetElement = e.target.closest('.sound');
             if (targetElement && targetElement !== soundboard.draggedElement) {
                 const rect = targetElement.getBoundingClientRect();
@@ -822,6 +832,7 @@ class Scene {
     }
     
     handleSoundDragLeave(e) {
+        console.log("SOUND DRAG LEAVE");
         if (e.target.classList.contains('sound')) {
             e.target.style.borderTop = '';
             e.target.style.borderBottom = '';
@@ -829,9 +840,10 @@ class Scene {
     }
     
     handleSoundDrop(e) {
+        console.log("SOUND DRAG DROP");
         e.preventDefault();
         
-        if (soundboard.draggedElement) {
+        if (soundboard.draggedElement.classList.contains('sound')) {
             console.log(e.target)
             const targetElement = e.target.closest('.sound');
             
@@ -864,7 +876,8 @@ class Scene {
     }
     
     handleSoundDragEnd(e) {
-        if (soundboard.draggedElement) {
+        console.log("SOUND DRAG END");
+        if (soundboard.draggedElement.classList.contains('sound')) {
             
             soundboard.draggedElement.style.opacity = '1';
             soundboard.draggedElement = null;
@@ -1038,6 +1051,7 @@ class Soundboard {
         this.assetCustomDialog = document.getElementById('asset-custom-dialog');
         this.addExistingAssetDialog = document.getElementById('sound-asset-dialog');
         this.isGloballyPaused = false;
+        this.createAddSceneButton();
         
         this.visualQueue = new VisualQueue(this);
         //this.scenesContainer.appendChild(this.visualQueue.element);
@@ -1054,6 +1068,14 @@ class Soundboard {
         this.initEventListeners();
         console.log('Soundboard initialized');
         
+    }
+
+    createAddSceneButton() {
+        const addSceneButton = document.createElement('button');
+        addSceneButton.className = 'add-scene-button';
+        addSceneButton.textContent = '+ Add Scene';
+        addSceneButton.addEventListener('click', () => soundboard.showAddSceneDialog());
+        this.scenesContainer.appendChild(addSceneButton);
     }
 
     getPlayingSounds() {
@@ -1266,7 +1288,7 @@ class Soundboard {
     {
         this.scenes.forEach(scene => {
             if (scene.name == name) {
-                scene.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (this.scenes.length > 2) scene.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 setTimeout(() => {
                     scene.element.classList.add('flash');
     
@@ -1752,7 +1774,6 @@ class Soundboard {
     }
 
     initSceneDragAndDrop() {
-        this.scenesContainer = document.getElementById('scenes-container');
         this.scenesContainer.addEventListener('dragstart', this.handleSceneDragStart.bind(this));
         this.scenesContainer.addEventListener('dragover', this.handleSceneDragOver.bind(this));
         this.scenesContainer.addEventListener('dragleave', this.handleSceneDragLeave.bind(this));
@@ -1788,9 +1809,9 @@ class Soundboard {
 
     handleQueueDragOver(e) {
         e.preventDefault();
-        if (this.draggedElement) {
+        if (this.draggedElement.classList.contains('queued-sound')) {
             const targetElement = e.target.closest('.queued-sound');
-            if (targetElement && targetElement !== this.draggedElement) {
+            if (targetElement && targetElement !== this.draggedElement && targetElement.classList.contains('scene-header')) {
                 const rect = targetElement.getBoundingClientRect();
                 const isGridLayout = window.innerWidth >= 300 && window.innerHeight >= 200; // Check if we're in grid layout
 
@@ -1820,7 +1841,7 @@ class Soundboard {
     handleSceneDragOver(e) {
         e.preventDefault();
         //console.log(e.target)
-        if (this.draggedElement) {
+        if (this.draggedElement.classList.contains('scene-header')) {
             const closestScene = this.getDragAfterElement(this.scenesContainer, e.clientY);
             if (e.target.classList.contains('scene-header'))  {
                 if (closestScene && !closestScene.classList.contains('visual-queue')) {
@@ -1850,7 +1871,7 @@ class Soundboard {
     handleQueueDrop(e) {
         e.preventDefault();
         
-        if (this.draggedElement) {
+        if (this.draggedElement.classList.contains('queued-sound')) {
             console.log(e.target)
             const targetElement = e.target.closest('.queued-sound');
             
@@ -1896,7 +1917,7 @@ class Soundboard {
     }
 
     handleQueueDragEnd(e) {
-        if (this.draggedElement) {
+        if (this.draggedElement.classList.contains('queued-sound')) {
             
             this.draggedElement.style.opacity = '1';
             this.draggedElement = null;
@@ -1909,7 +1930,7 @@ class Soundboard {
     }
 
     handleSceneDragEnd(e) {
-        console.log("END")
+        console.log("END");
         if (e.target.classList.contains('scene-header')) {
             //document.querySelector('.scene.dragging')?.classList.remove('dragging');
             this.draggedElement.classList.remove('dragging');
@@ -1937,7 +1958,6 @@ class Soundboard {
             .map(el => this.scenes.find(scene => scene.element.dataset.sceneId === el.dataset.sceneId));
             console.log(this.scenes)
         await window.electronAPI.updateSceneOrder(this.scenes.map(scene => scene.id));
-    
     }
 
     updateQueueOrder() {
