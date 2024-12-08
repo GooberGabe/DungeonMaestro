@@ -17,7 +17,7 @@ DungeonMaestro empowers your tabletop RPG sessions with:
 ## 🚀 Installation
 
 1. Visit the [Releases](https://github.com/GooberGabe/DungeonMaestro/releases) page
-2. Download the latest version for your operating system
+2. Download the latest installer for your operating system
 3. Run the installer and follow the on-screen instructions
 
 ## 🎮 Usage
