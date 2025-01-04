@@ -21,6 +21,27 @@
         </div>
         <div id="content">
             <div id="scenes-container"></div>
+            <div id="assets-container">
+                <div class="assets-header">
+                    <div class="search-container">
+                        <input type="text" id="asset-search" placeholder="Search assets...">
+                        <select id="search-filter">
+                            <option value="name">Search by name</option>
+                            <option value="tag">Search by tag</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="assets-grid">
+                    <!-- Assets will be populated here -->
+                </div>
+            </div>
+            <!--
+            <button id="view-toggle" aria-label="Toggle view">
+                <svg viewBox="0 0 24 24">
+                    <use href="#scene-view-icon"/>
+                </svg>
+            </button>   
+            -->
         </div>
         <div id="bottom-bar">
             <button id="pause-button">⏯️</button>
@@ -107,7 +128,7 @@
     <dialog id="about-dialog">
         <h2>About DungeonMaestro</h2>
         <p>DungeonMaestro is an easy-to-use tool for managing and playing custom audio for tabletop role-playing games.</p>
-        <p>Version: 0.3.0</p>
+        <p>Version: 0.3.1</p>
         <p>Created by Gabe Lytle</p>
         <button id="close-about">Close</button>
     </dialog>

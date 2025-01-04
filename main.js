@@ -107,6 +107,9 @@ function setupIPCHandlers() {
     await db.deleteAllScenes();
     console.log('All scenes deleted from database');
   });
+  ipcMain.handle('delete-asset', async (event, assetId) => { 
+    await db.deleteAsset(assetId); 
+});
 
   ipcMain.on('resize-window', (event, size) => {
     if (mainWindow) {

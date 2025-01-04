@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteScene: (sceneId) => ipcRenderer.invoke('delete-scene', sceneId),
     deleteSound: (soundId) => ipcRenderer.invoke('delete-sound', soundId),
     deleteAllScenes: () => ipcRenderer.invoke('delete-all-scenes'),
+    deleteAsset: (assetId) => ipcRenderer.invoke('delete-asset', assetId),
 
     onUpdateAvailable: (callback) => ipcRenderer.on('update_available', callback),
     onUpdateDownloaded: (callback) => ipcRenderer.on('update_downloaded', callback),

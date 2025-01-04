@@ -178,6 +178,23 @@ class SoundboardDB {
 
         deleteAllTx();
     }
+
+    async deleteAsset(assetId) {
+        const deleteAsset = this.db.prepare('DELETE FROM assets WHERE id = ?');
+        const deleteSounds = this.db.prepare('DELETE FROM sounds WHERE asset_id = ?');
+        const deleteQueueEntries = this.db.prepare('DELETE FROM queue WHERE sound_id IN (SELECT id FROM sounds WHERE asset_id = ?)');
+    
+        const transaction = this.db.transaction((id) => {
+            // Delete queue entries first (due to foreign key constraints)
+            deleteQueueEntries.run(id);
+            // Then delete sounds that use this asset
+            deleteSounds.run(id);
+            // Finally delete the asset itself
+            deleteAsset.run(id);
+        });
+    
+        transaction(assetId);
+    }
 }
 
 /* Currently, there is no uninstall option. 

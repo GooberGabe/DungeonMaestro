@@ -8,6 +8,195 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+class ViewManager {
+    constructor() {
+        this.currentView = 'scenes';
+        //this.button = document.getElementById('view-toggle'); // Uncomment to continue working on AssetManager
+        this.app = document.getElementById('content');
+        this.scenesContainer = document.getElementById('scenes-container');
+        this.assetsContainer = document.getElementById('assets-container');
+        this.assetManager = new AssetManager(soundboard);
+        
+        this.initEventListeners();
+    }
+
+    initEventListeners() {
+        //this.button.addEventListener('click', () => this.toggleView());
+    }
+
+    toggleView() {
+        if (this.currentView === 'scenes') {
+            this.currentView = 'assets';
+            this.app.classList.add('show-assets');
+            this.button.querySelector('svg use').setAttribute('href', '#asset-view-icon');
+            soundboard.allowHotkeys = false;
+        } else {
+            this.currentView = 'scenes';
+            this.app.classList.remove('show-assets');
+            this.button.querySelector('svg use').setAttribute('href', '#scene-view-icon');
+            soundboard.allowHotkeys = true;
+        }
+    }
+}
+
+class AssetManager {
+    constructor(soundboard) {
+        this.soundboard = soundboard;
+        this.container = document.getElementById('assets-container');
+        this.searchInput = document.getElementById('asset-search');
+        this.searchFilter = document.getElementById('search-filter');
+        this.assetsGrid = this.container.querySelector('.assets-grid');
+        
+        this.initEventListeners();
+        this.render();
+    }
+
+    initEventListeners() {
+        this.searchInput.addEventListener('input', () => this.handleSearch());
+        this.searchFilter.addEventListener('change', () => this.handleSearch());
+    }
+
+    handleSearch() {
+        const query = this.searchInput.value.toLowerCase();
+        const filter = this.searchFilter.value;
+        
+        const filteredAssets = this.soundboard.soundAssets.filter(asset => {
+            if (filter === 'name') {
+                return asset.name.toLowerCase().includes(query);
+            } else {
+                return asset.tags.some(tag => tag.toLowerCase().includes(query));
+            }
+        });
+
+        this.renderAssets(filteredAssets);
+    }
+
+    renderAssetCard(asset) {
+        const card = document.createElement('div');
+        card.className = 'asset-card';
+        card.innerHTML = `
+            <div class="asset-header">
+                <span class="asset-name">${asset.name}</span>
+                <div class="asset-controls">
+                    <button class="play-asset">▶</button>
+                    <button class="delete-asset">🗑️</button>
+                </div>
+            </div>
+            <div class="asset-type">
+                <img src="assets/${asset.type}.svg" alt="${asset.type}" class="sound-type-icon">
+                ${asset.isYouTube ? '<span class="youtube-indicator">YouTube</span>' : 'Local'}
+            </div>
+            <div class="asset-tags">
+                ${asset.tags.map(tag => `<span class="asset-tag">${tag}</span>`).join('')}
+                <button class="add-tag">+ Add Tag</button>
+            </div>
+        `;
+
+        // Add event listeners
+        card.querySelector('.play-asset').addEventListener('click', () => this.playAsset(asset));
+        card.querySelector('.delete-asset').addEventListener('click', () => this.deleteAsset(asset));
+        card.querySelector('.add-tag').addEventListener('click', () => this.addTag(asset));
+
+        return card;
+    }
+
+    renderAssets(assets = this.soundboard.soundAssets) {
+        this.assetsGrid.innerHTML = '';
+        assets.forEach(asset => {
+            this.assetsGrid.appendChild(this.renderAssetCard(asset));
+        });
+    }
+
+    async playAsset(asset) {
+        // TODO: Implement playback
+    }
+
+    async deleteAsset(asset) {
+        // Create and show confirmation dialog
+        const dialog = document.createElement('dialog');
+        dialog.className = 'sound-options-dialog';
+        dialog.innerHTML = `
+            <form method="dialog">
+                <h3>Delete Asset "${asset.name}"?</h3>
+                <p>This will remove all instances of this sound from your scenes.</p>
+                <div class="dialog-buttons">
+                    <button type="submit" value="cancel">Cancel</button>
+                    <button type="submit" value="confirm" class="delete-confirm">Delete</button>
+                </div>
+            </form>
+        `;
+
+        // Style delete button
+        const deleteButton = dialog.querySelector('.delete-confirm');
+        deleteButton.style.backgroundColor = 'var(--accent-primary)';
+
+        document.body.appendChild(dialog);
+        dialog.showModal();
+
+        // Handle dialog response
+        const result = await new Promise(resolve => {
+            dialog.addEventListener('close', () => {
+                resolve(dialog.returnValue);
+                dialog.remove();
+            });
+        });
+
+        if (result === 'confirm') {
+            try {
+                // Remove all sounds that use this asset
+                this.soundboard.scenes.forEach(scene => {
+                    scene.sounds = scene.sounds.filter(sound => sound.asset !== asset);
+                });
+
+                // Remove from soundAssets array
+                const index = this.soundboard.soundAssets.indexOf(asset);
+                if (index > -1) {
+                    this.soundboard.soundAssets.splice(index, 1);
+                }
+
+                // Delete from database
+                await window.electronAPI.deleteAsset(asset.id);
+
+                // Update UI
+                this.render();
+                
+                // Save state
+                this.soundboard.saveState();
+            } catch (error) {
+                console.error('Failed to delete asset:', error);
+                // Show error dialog
+                const errorDialog = document.createElement('dialog');
+                errorDialog.className = 'sound-options-dialog';
+                errorDialog.innerHTML = `
+                    <form method="dialog">
+                        <h3>Error</h3>
+                        <p>Failed to delete asset: ${error.message}</p>
+                        <div class="dialog-buttons">
+                            <button type="submit">OK</button>
+                        </div>
+                    </form>
+                `;
+                document.body.appendChild(errorDialog);
+                errorDialog.showModal();
+                errorDialog.addEventListener('close', () => errorDialog.remove());
+            }
+        }
+    }
+
+    async addTag(asset) {
+        const tag = prompt('Enter new tag:');
+        if (tag && !asset.tags.includes(tag)) {
+            asset.tags.push(tag);
+            this.render();
+            // TODO: Save to database
+        }
+    }
+
+    render() {
+        this.renderAssets();
+    }
+}
+
 /***************************************************************************************
  * SOUNDASSET
  * 
@@ -258,6 +447,11 @@ class Soundscape {
         const nameInput = dialog.querySelector('#sound-name-input');
         const volumeSlider = dialog.querySelector('#volume-slider');
         //const sourceInput = dialog.querySelector('#source-input');
+
+        volumeSlider.addEventListener('input', (e) => {
+            const newVolume = parseFloat(volumeSlider.value);
+            this.setVolume(newVolume);
+        })
 
         dialog.querySelector('form').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1996,6 +2190,7 @@ firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
 var soundboard;
 
+
 // When the app unloads, save stuff to the DB
 window.addEventListener('beforeunload', async (event) => {
     event.preventDefault();
@@ -2008,6 +2203,7 @@ window.onYouTubeIframeAPIReady = function() {
     soundboard.loadState().catch(error => {
         console.error('Failed to load state:', error);
     });
+    const viewManager = new ViewManager();
     document.addEventListener('keydown', function(event) {
         // Hotkeys
         if (soundboard.allowHotkeys) {
