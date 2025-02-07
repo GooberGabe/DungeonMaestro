@@ -49,7 +49,7 @@ function createWindow() {
   });
 
   // Uncomment to open DevTools by default
-  win.webContents.openDevTools();
+  // win.webContents.openDevTools();
 
   /* 
    mainWindow.webContents.on('render-process-gone', (event, details) => {
