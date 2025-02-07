@@ -1531,15 +1531,37 @@ class Soundboard {
         this.populateAssetList();
         this.addExistingAssetDialog.showModal();
         soundboard.allowHotkeys = false;
+        
+        // Clear and focus search input
+        const searchInput = document.getElementById('asset-dialog-search');
+        searchInput.value = '';
+        searchInput.focus();
     }
 
     populateAssetList() {
         const assetList = document.getElementById('sound-asset-list');
-        assetList.innerHTML = '';
-        soundboard.soundAssets.forEach(asset => {
-            const card = this.createAssetCard(asset);
-            assetList.appendChild(card);
-        });
+        const searchInput = document.getElementById('asset-dialog-search');
+        
+        const filterAssets = () => {
+            const query = searchInput.value.toLowerCase();
+            assetList.innerHTML = '';
+            
+            soundboard.soundAssets
+                .filter(asset => asset.name.toLowerCase().includes(query))
+                .forEach(asset => {
+                    const card = this.createAssetCard(asset);
+                    assetList.appendChild(card);
+                });
+        };
+    
+        // Initial population
+        filterAssets();
+    
+        // Set up search handler if not already set
+        if (!searchInput.hasSearchHandler) {
+            searchInput.addEventListener('input', filterAssets);
+            searchInput.hasSearchHandler = true;
+        }
     }
 
     createAssetCard(asset) {
@@ -1547,19 +1569,52 @@ class Soundboard {
         const title = asset.isYouTube && asset.title != '' ? ' ('+asset.title+')' : '';
         card.className = 'sound-asset-card';
         card.innerHTML = `
+            <button class="delete-asset" title="Delete asset">✕</button>
             <div class="sound-asset-name">${asset.name}</div>
             <div class="sound-asset-info">
-                
                 ${asset.isYouTube ? `<span class="youtube-indicator">${title}</span>` : 'Local'}
-                
                 <img class="sound-type-icon" src="assets/${asset.type}.svg" alt="${asset.type}">
             </div>
         `;
-        card.onclick = () => {
-            this.addExistingAssetDialog.close();
-            soundboard.allowHotkeys = true; 
-            soundboard.addSound(asset);
+        card.onclick = (e) => {
+            // Don't trigger selection if clicking delete button
+            if (!e.target.classList.contains('delete-asset')) {
+                this.addExistingAssetDialog.close();
+                soundboard.allowHotkeys = true; 
+                soundboard.addSound(asset,true);
+            }
         };
+        card.querySelector('.delete-asset').addEventListener('click', async (e) => {
+            e.stopPropagation(); // Prevent card selection
+            
+            if (confirm(`Delete asset "${asset.name}"?`)) {
+                try {
+                    // Remove all sounds that use this asset
+                    this.scenes.forEach(scene => {
+                        scene.sounds = scene.sounds.filter(sound => sound.asset !== asset);
+                    });
+    
+                    // Remove from soundAssets array
+                    const index = this.soundAssets.indexOf(asset);
+                    if (index > -1) {
+                        this.soundAssets.splice(index, 1);
+                    }
+    
+                    // Delete from database
+                    await window.electronAPI.deleteAsset(asset.id);
+    
+                    // Update asset list
+                    this.populateAssetList();
+                    
+                    // Save state
+                    this.saveState();
+                } catch (error) {
+                    console.error('Failed to delete asset:', error);
+                    alert('Failed to delete asset: ' + error.message);
+                }
+            }
+        });
+    
         return card;
     }
 

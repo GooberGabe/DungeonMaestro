@@ -819,6 +819,20 @@ dialog button[type="button"]:hover {
     background-color: rgba(0, 0, 0, 0.5);
 }
 
+.asset-dialog-search {
+    margin-bottom: 15px;
+}
+
+#asset-dialog-search {
+    width: 100%;
+    padding: 8px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--accent-secondary);
+    border-radius: 4px;
+    color: var(--text-primary);
+    box-sizing: border-box;
+}
+
 #sound-asset-list {
     display: flex;
     flex-direction: column;
@@ -854,9 +868,35 @@ dialog button[type="button"]:hover {
     max-height: 40px;
 }
 
+.sound-asset-card .delete-asset {
+    position: absolute;
+    top: 3px;
+    right: 7px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease, color 0.2s ease;
+    margin: 0 auto;
+    padding: 0px;
+}
+
 .sound-asset-card:hover {
     border-color: var(--accent-secondary);
     transform: translateY(-1px);
+}
+
+.sound-asset-card:hover .delete-asset {
+    opacity: 1;
+}
+
+.sound-asset-card .delete-asset:hover {
+    color: var(--accent-primary);
+}
+
+.sound-asset-card {
+    position: relative;  /* For delete button positioning */
 }
 
 .sound-asset-name {
